@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Budget{% endblock %} · {{ 'Budget management'|trans }}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>💶</text></svg>">
+
+        <script>
+            (function () {
+                var mode = '{{ default_theme() }}';
+                var theme = mode === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
+                document.documentElement.setAttribute('data-theme-mode', mode);
+                document.documentElement.setAttribute('data-bs-theme', theme);
+
+                var storedFontScale = localStorage.getItem('fontScale');
+                if (storedFontScale) {
+                    document.documentElement.style.fontSize = storedFontScale + '%';
+                }
+            })();
+        </script>
+
+        {% block stylesheets %}
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+            <style>
+                body { background-color: #f5f7fb; }
+                [data-bs-theme="dark"] body { background-color: #14161a; }
+                .navbar-brand { font-weight: 600; }
+                .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+                .amount-negative { color: #dc3545; }
+                .amount-positive { color: #198754; }
+                #account-switcher { min-width: 200px; }
+                .form-label.required::after { content: " *"; color: #dc3545; }
+                a { font-weight: bold; }
+                .btn { font-weight: bold; }
+                .btn-outline-danger { font-weight: bold; }
+                tr > th { text-align: center; }
+
+                [data-bs-theme="light"] input,
+                [data-bs-theme="light"] select,
+                [data-bs-theme="light"] textarea {
+                    border-color: #000000;
+                }
+                [data-bs-theme="dark"] input,
+                [data-bs-theme="dark"] select,
+                [data-bs-theme="dark"] textarea {
+                    border-color: #ffffff;
+                }
+
+                [data-bs-theme="light"] .btn-outline-secondary {
+                    color: #000000;
+                    border-color: #000000;
+                }
+                [data-bs-theme="dark"] .btn-outline-secondary {
+                    color: #ffffff;
+                    border-color: #ffffff;
+                }
+
+                [data-bs-theme="light"] .tx-row-upcoming .btn-outline-secondary,
+                [data-bs-theme="light"] .tx-row-done .btn-outline-secondary {
+                    font-weight: bold;
+                    color: #000000;
+                }
+                [data-bs-theme="dark"] .tx-row-upcoming .btn-outline-secondary {
+                    font-weight: bold;
+                    color: #000000;
+                    border-color: #000000;
+                }
+                [data-bs-theme="dark"] .tx-row-done .btn-outline-secondary {
+                    font-weight: bold;
+                    color: #ffffff;
+                    border-color: #ffffff;
+                }
+
+                [data-bs-theme="dark"] .tx-row-upcoming .tx-account-link {
+                    color: #0d47a1;
+                }
+
+                [data-bs-theme="light"] .tx-select-checkbox,
+                [data-bs-theme="light"] #select-all-transactions {
+                    background-color: transparent;
+                    border-color: #000000;
+                }
+                [data-bs-theme="light"] .tx-select-checkbox:checked,
+                [data-bs-theme="light"] #select-all-transactions:checked {
+                    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+                }
+                [data-bs-theme="dark"] #select-all-transactions,
+                [data-bs-theme="dark"] .tx-row-done .tx-select-checkbox {
+                    background-color: transparent;
+                    border-color: #ffffff;
+                }
+                [data-bs-theme="dark"] .tx-row-upcoming .tx-select-checkbox {
+                    background-color: transparent;
+                    border-color: #000000;
+                }
+                [data-bs-theme="dark"] .tx-row-upcoming .tx-select-checkbox:checked {
+                    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+                }
+
+                .navbar.sticky-top {
+                    transition: box-shadow .2s ease, padding .2s ease;
+                }
+                .navbar.sticky-top.navbar-scrolled {
+                    box-shadow: 0 .25rem .5rem rgba(0,0,0,.35);
+                    padding-top: .3rem;
+                    padding-bottom: .3rem;
+                }
+            </style>
+        {% endblock %}
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 sticky-top">
+            <div class="container">
+                <a class="navbar-brand" href="{{ path('app_dashboard') }}">💶 {{ 'Home'|trans }}</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navMain">
+                    {% set navAccount = currentAccount is defined and currentAccount ? currentAccount : (filterAccount is defined and filterAccount ? filterAccount : null) %}
+                    <ul class="navbar-nav me-auto">
+                        {% if navAccount %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_dashboard_account', {'id': navAccount.id}) }}">{{ 'Dashboard'|trans }}</a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ path('app_transaction_index', navAccount ? {'account': navAccount.id} : {}) }}">{{ 'Transactions'|trans }}</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ path('app_category_index') }}">{{ 'Tags'|trans }}</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ path('app_account_index') }}">{{ 'Accounts'|trans }}</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ 'Admin'|trans }}</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ path('app_admin_index') }}">{{ 'Administration'|trans }}</a></li>
+                                <li><a class="dropdown-item" href="{{ path('app_admin_translations') }}">{{ 'Translate interface'|trans }}</a></li>
+                                <li><a class="dropdown-item" href="{{ path('app_admin_tests') }}">{{ 'Unit tests'|trans }}</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="account-switcher" class="form-select form-select-sm">
+                            <option value="{{ path('app_dashboard') }}"{{ navAccount is null ? ' selected' : '' }}>
+                                {{ 'All accounts'|trans }}
+                            </option>
+                            {% for account in all_accounts() %}
+                                <option value="{{ path('app_dashboard_account', {id: account.id}) }}"{{ navAccount and navAccount.id == account.id ? ' selected' : '' }}>
+                                    {{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="btn-group" role="group" aria-label="{{ 'Text size'|trans }}">
+                            <button type="button" id="font-decrease" class="btn btn-outline-light btn-sm" title="{{ 'Decrease text size'|trans }}">A-</button>
+                            <button type="button" id="font-reset" class="btn btn-outline-light btn-sm" title="{{ 'Reset text size'|trans }}">A</button>
+                            <button type="button" id="font-increase" class="btn btn-outline-light btn-sm" title="{{ 'Increase text size'|trans }}">A+</button>
+                        </div>
+                        {% if backup_configured() %}
+                            <form method="post" action="{{ path('app_admin_backup') }}" class="d-inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('admin_backup') }}">
+                                <input type="hidden" name="redirectTo" value="{{ app.request.requestUri }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm text-nowrap" title="{{ 'Force a database backup'|trans }}">
+                                    <i class="bi bi-shield-check"></i> {{ 'Backup'|trans }}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="toast align-items-center text-bg-{{ label }} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+                        <div class="d-flex">
+                            <div class="toast-body">{{ message }}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="{{ 'Close'|trans }}"></button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <div class="container pb-5">
+            {% block body %}{% endblock %}
+        </div>
+
+        {{ include('transaction/_form_modal.html.twig') }}
+        {{ include('_ajax_modal.html.twig') }}
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+        {% block javascripts %}{% endblock %}
+
+        <script>
+            document.querySelectorAll('.toast').forEach(function (toastEl) {
+                new bootstrap.Toast(toastEl).show();
+            });
+
+            document.getElementById('account-switcher').addEventListener('change', function () {
+                window.location = this.value;
+            });
+
+            (function () {
+                var nav = document.querySelector('nav.sticky-top');
+                if (!nav) {
+                    return;
+                }
+
+                function updateNavShadow() {
+                    nav.classList.toggle('navbar-scrolled', window.scrollY > 10);
+                }
+
+                updateNavShadow();
+                window.addEventListener('scroll', updateNavShadow, { passive: true });
+            })();
+
+            (function () {
+                var MIN_SCALE = 70;
+                var MAX_SCALE = 160;
+                var STEP = 10;
+
+                function getScale() {
+                    return parseInt(localStorage.getItem('fontScale'), 10) || 100;
+                }
+
+                function applyScale(scale) {
+                    scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+                    document.documentElement.style.fontSize = scale + '%';
+                    localStorage.setItem('fontScale', scale);
+                }
+
+                document.getElementById('font-increase').addEventListener('click', function () {
+                    applyScale(getScale() + STEP);
+                });
+                document.getElementById('font-decrease').addEventListener('click', function () {
+                    applyScale(getScale() - STEP);
+                });
+                document.getElementById('font-reset').addEventListener('click', function () {
+                    localStorage.removeItem('fontScale');
+                    document.documentElement.style.fontSize = '';
+                });
+            })();
+        </script>
+    </body>
+</html>

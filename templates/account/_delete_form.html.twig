@@ -1,0 +1,8 @@
+<form method="post" action="{{ path('app_account_delete', {'id': account.id}) }}" onsubmit="return confirm('{{ 'Delete this account?'|trans|e('js') }}');" class="d-inline" data-native-submit>
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ account.id) }}">
+    {% if account.transactions is not empty %}
+        <button class="btn btn-outline-danger {{ buttonClass|default('') }}" type="button" disabled title="{{ 'Cannot delete: transactions are attached to this account'|trans }}">{{ 'Delete'|trans }}</button>
+    {% else %}
+        <button class="btn btn-outline-danger {{ buttonClass|default('') }}">{{ 'Delete'|trans }}</button>
+    {% endif %}
+</form>

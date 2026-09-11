@@ -1,0 +1,18 @@
+<div class="mb-3">
+    <label for="category-search" class="form-label required">{{ form.category.vars.label|trans }}</label>
+    <div class="d-flex gap-2">
+        <div class="position-relative flex-grow-1">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="right: 0.75rem;"></i>
+            <input type="text" id="category-search" class="form-control pe-4" autocomplete="off" placeholder="{{ 'Search a tag…'|trans }}">
+            <div id="category-search-results" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1050; display: none; max-height: 240px; overflow-y: auto;"></div>
+        </div>
+        <button type="button" id="category-quick-new-btn" class="btn btn-outline-secondary flex-shrink-0">
+            <i class="bi bi-plus-lg"></i> {{ 'New'|trans }}
+        </button>
+    </div>
+    {{ form_widget(form.category, {'attr': {'class': 'd-none'}}) }}
+    {{ form_help(form.category) }}
+    {% for error in form.category.vars.errors %}
+        <div class="text-danger small mt-1">{{ error.message }}</div>
+    {% endfor %}
+</div>

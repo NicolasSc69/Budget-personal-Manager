@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ account.label }}{% endblock %}
+
+{% block body %}
+    <h1 class="h3 mb-3">{{ account.label }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width: 200px;">{{ 'Label'|trans }}</th>
+                        <td>{{ account.label }}</td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Type'|trans }}</th>
+                        <td><span class="badge text-bg-secondary">{{ account.type.name }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Person'|trans }}</th>
+                        <td>
+                            {% if account.person %}
+                                <span class="badge text-bg-secondary">{{ account.person.name }}</span>
+                            {% else %}
+                                <span class="text-muted">{{ 'None'|trans }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Initial balance'|trans }}</th>
+                        <td>{{ (account.initialBalance ?? 0)|money }}</td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Savings'|trans }}</th>
+                        <td>
+                            {% if account.savings %}
+                                <span class="badge text-bg-info">{{ 'Yes'|trans }}</span>
+                                {% if account.interestRate %}
+                                    — {{ 'Rate:'|trans }} {{ account.interestRate|number_format(2, ',', ' ') }} %
+                                {% endif %}
+                                {% if account.maxAmount %}
+                                    — {{ 'Target:'|trans }} {{ account.maxAmount|money }}
+                                {% endif %}
+                            {% else %}
+                                {{ 'No'|trans }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ path('app_account_index') }}" class="btn btn-outline-secondary">{{ 'Back'|trans }}</a>
+        <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" class="btn btn-outline-primary">{{ 'View dashboard'|trans }}</a>
+        <a href="{{ path('app_account_edit', {'id': account.id}) }}" class="btn btn-primary">{{ 'Edit'|trans }}</a>
+        {{ include('account/_delete_form.html.twig') }}
+    </div>
+{% endblock %}

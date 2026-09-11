@@ -1,0 +1,356 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Transactions'|trans }}{% endblock %}
+
+{% macro sortLink(field, label, sort, direction, queryParams) %}
+    {% set nextDirection = (sort == field and direction == 'asc') ? 'desc' : 'asc' %}
+    <a href="{{ path('app_transaction_index', queryParams|merge({'sort': field, 'direction': nextDirection})) }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+        {{ label }}
+        {% if sort == field %}
+            <i class="bi bi-caret-{{ direction == 'asc' ? 'up' : 'down' }}-fill small"></i>
+        {% endif %}
+    </a>
+{% endmacro %}
+
+{% import _self as helpers %}
+
+{% block body %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            {{ 'Transactions'|trans }}
+            {% if filterAccount %}
+                <br>{{ filterAccount.label }}{% if filterAccount.person %} ({{ filterAccount.person.name }}){% endif %}
+            {% endif %}
+        </h1>
+        <div class="d-flex gap-2">
+            <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+            </a>
+            <a href="{{ path('app_transaction_recurring', filterAccount ? {'account': filterAccount.id} : {}) }}" class="btn btn-outline-warning">
+                <i class="bi bi-arrow-repeat"></i> {{ 'Recurring transactions to duplicate (%count%)'|trans({'%count%': pendingRecurringCount}) }}
+            </a>
+            <a href="{{ path('app_transaction_export_pdf', queryParams) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-file-earmark-pdf"></i> {{ 'Export PDF'|trans }}
+            </a>
+            <a href="{{ path('app_transaction_new', filterAccount ? {'account': filterAccount.id} : {}) }}" class="btn btn-primary" data-transaction-modal data-title="{{ 'New transaction'|trans }}">
+                <i class="bi bi-plus-lg"></i> {{ 'New transaction'|trans }}
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" action="{{ path('app_transaction_index') }}" class="row g-2 align-items-end" id="transaction-filter-form">
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="filter-search">{{ 'Title'|trans }}</label>
+                    <input type="text" id="filter-search" name="search" value="{{ filterSearch }}" placeholder="{{ 'Search…'|trans }}" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="filter-account">{{ 'Account'|trans }}</label>
+                    <select id="filter-account" name="account" class="form-select form-select-sm">
+                        <option value="">{{ 'All'|trans }}</option>
+                        {% for account in accounts %}
+                            <option value="{{ account.id }}" {{ filterAccount and filterAccount.id == account.id ? 'selected' : '' }}>{{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="filter-category">{{ 'Tag'|trans }}</label>
+                    <select id="filter-category" name="category" class="form-select form-select-sm">
+                        <option value="">{{ 'All'|trans }}</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {{ filterCategory and filterCategory.id == category.id ? 'selected' : '' }}>{% for a in category.ancestors %}&nbsp;&nbsp;&nbsp;{% endfor %}{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% set datesActive = filterDateFrom or filterDateTo %}
+                {% set amountsActive = filterAmountMin or filterAmountMax %}
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filter-dates-collapse" aria-expanded="{{ datesActive ? 'true' : 'false' }}" aria-controls="filter-dates-collapse">
+                        <i class="bi bi-calendar3"></i> {{ 'Dates'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filter-amounts-collapse" aria-expanded="{{ amountsActive ? 'true' : 'false' }}" aria-controls="filter-amounts-collapse">
+                        <i class="bi bi-cash"></i> {{ 'Amount'|trans }}
+                    </button>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="filter-current-month" name="current_month" value="1" {{ filterCurrentMonthOnly ? 'checked' : '' }}>
+                        <label class="form-check-label" for="filter-current-month">{{ 'Current month'|trans }}</label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="filter-upcoming-only" name="upcoming_only" value="1" {{ filterUpcomingOnly ? 'checked' : '' }}>
+                        <label class="form-check-label" for="filter-upcoming-only">{{ 'Upcoming only'|trans }}</label>
+                    </div>
+                </div>
+
+                <div class="col-12 collapse{{ datesActive ? ' show' : '' }}" id="filter-dates-collapse">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1" for="filter-date-from">{{ 'From'|trans }}</label>
+                            <input type="date" id="filter-date-from" name="date_from" value="{{ filterDateFrom }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1" for="filter-date-to">{{ 'To'|trans }}</label>
+                            <input type="date" id="filter-date-to" name="date_to" value="{{ filterDateTo }}" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 collapse{{ amountsActive ? ' show' : '' }}" id="filter-amounts-collapse">
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1" for="filter-amount-min">{{ 'Min amount'|trans }}</label>
+                            <input type="number" step="0.01" id="filter-amount-min" name="amount_min" value="{{ filterAmountMin }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1" for="filter-amount-max">{{ 'Max amount'|trans }}</label>
+                            <input type="number" step="0.01" id="filter-amount-max" name="amount_max" value="{{ filterAmountMax }}" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-funnel"></i> {{ 'Filter'|trans }}
+                    </button>
+                    <a href="{{ path('app_transaction_index') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i> {{ 'Reset'|trans }}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body d-flex flex-wrap gap-4">
+            <div>
+                <div class="text-muted small">{{ 'Current balance as of %date%'|trans({'%date%': balanceDate}) }}</div>
+                <div class="fs-4 fw-semibold {{ currentBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
+                    {{ currentBalance|money }}
+                </div>
+            </div>
+            <div>
+                <div class="text-muted small">{{ 'Upcoming balance'|trans }}</div>
+                <div class="fs-4 fw-semibold {{ upcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
+                    {{ upcomingBalance|money }}
+                </div>
+            </div>
+            {% if filterAccount and not filterAccount.isSavings %}
+                <div>
+                    <div class="text-muted small">
+                        {{ 'Projected balance'|trans }}
+                        <i class="bi bi-info-circle" title="{{ 'Estimate based on the average salary between the 1st and the last day of the month.'|trans }}"></i>
+                    </div>
+                    <div class="fs-4 fw-semibold {{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
+                        {{ forecastBalance|money }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="post" action="{{ path('app_transaction_bulk_delete') }}" id="bulk-delete-form" class="d-none">
+        <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_transactions') }}">
+        <input type="hidden" name="redirectTo" value="{{ app.request.requestUri }}">
+    </form>
+
+    <div class="bulk-actions-bar d-none align-items-center gap-2 mb-2">
+        <span class="text-muted small"><span class="bulk-selected-count">0</span> {{ 'transaction(s) selected'|trans }}</span>
+        <button type="button" class="bulk-delete-btn btn btn-sm btn-danger">
+            <i class="bi bi-trash"></i> {{ 'Delete selected item(s)'|trans }}
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 1%;">
+                            <input type="checkbox" class="form-check-input" id="select-all-transactions" aria-label="{{ 'Select all'|trans }}">
+                        </th>
+                        <th>{{ helpers.sortLink('title', 'Title'|trans, sort, direction, queryParams) }}</th>
+                        <th>{{ helpers.sortLink('date', 'Date'|trans, sort, direction, queryParams) }}</th>
+                        <th>{{ helpers.sortLink('account', 'Account'|trans, sort, direction, queryParams) }}</th>
+                        <th>{{ helpers.sortLink('category', 'Tag'|trans, sort, direction, queryParams) }}</th>
+                        <th class="text-end">{{ helpers.sortLink('amount', 'Amount'|trans, sort, direction, queryParams) }}</th>
+                        <th class="text-center">{{ 'Actions'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for transaction in transactions %}
+                    <tr class="{{ transaction.upcoming ? 'tx-row-upcoming table-warning fst-italic' : 'tx-row-done' }}">
+                        <td>
+                            <input type="checkbox" class="form-check-input tx-select-checkbox" value="{{ transaction.id }}" aria-label="{{ 'Select this transaction'|trans }}">
+                        </td>
+                        <td>{{ transaction.title|default('') != '' ? transaction.title : '—' }}</td>
+                        <td>{{ transaction.date ? transaction.date|date('d/m/Y') : '' }}</td>
+                        <td>
+                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="text-decoration-none tx-account-link">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
+                        </td>
+                        <td>
+                            <a href="{{ path('app_transaction_index', queryParams|merge({'category': transaction.category.id})) }}" class="badge text-decoration-none" style="background-color: {{ transaction.category.color }};">
+                                {{ transaction.category.fullName }}
+                            </a>
+                        </td>
+                        <td class="text-end {{ transaction.amount < 0 ? 'amount-negative' : 'amount-positive' }}">
+                            {{ transaction.amount|money }}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex flex-column gap-1 align-items-center">
+                                <div class="d-flex gap-1">
+                                    <a href="{{ path('app_transaction_show', {'id': transaction.id}) }}" class="btn btn-sm btn-outline-secondary" data-transaction-modal data-title="{{ 'Transaction details'|trans }}">{{ 'View'|trans }}</a>
+                                    <a href="{{ path('app_transaction_edit', {'id': transaction.id}) }}" class="btn btn-sm btn-outline-secondary" data-transaction-modal data-title="{{ 'Edit transaction'|trans }}">{{ 'Edit'|trans }}</a>
+                                    {{ include('transaction/_delete_form.html.twig', {buttonClass: 'btn-sm'}) }}
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ path('app_transaction_new', {'duplicate': transaction.id}) }}" class="btn btn-sm btn-outline-secondary" title="{{ 'Duplicate this transaction'|trans }}" data-transaction-modal data-title="{{ 'Duplicate transaction'|trans }}">
+                                        <i class="bi bi-copy"></i> {{ 'Duplicate'|trans }}
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">{{ 'No transaction at the moment'|trans }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end mt-2">
+        <span class="fw-semibold {{ filteredAmountSum < 0 ? 'amount-negative' : 'amount-positive' }}">
+            {{ 'Total: %amount%'|trans({'%amount%': filteredAmountSum|money}) }}
+        </span>
+    </div>
+
+    <div class="bulk-actions-bar d-none align-items-center gap-2 my-2">
+        <span class="text-muted small"><span class="bulk-selected-count">0</span> {{ 'transaction(s) selected'|trans }}</span>
+        <button type="button" class="bulk-delete-btn btn btn-sm btn-danger">
+            <i class="bi bi-trash"></i> {{ 'Delete selected item(s)'|trans }}
+        </button>
+    </div>
+
+    {{ include('_pagination.html.twig', {routeName: 'app_transaction_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams}) }}
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+    (function () {
+        const form = document.getElementById('transaction-filter-form');
+        if (!form) {
+            return;
+        }
+
+        let debounceTimer = null;
+
+        form.querySelectorAll('input[type="checkbox"]').forEach((field) => {
+            field.addEventListener('change', () => form.submit());
+        });
+
+        form.querySelectorAll('select').forEach((field) => {
+            let selectDebounceTimer = null;
+            field.addEventListener('change', () => {
+                clearTimeout(selectDebounceTimer);
+                selectDebounceTimer = setTimeout(() => form.submit(), 400);
+            });
+        });
+
+        form.querySelectorAll('input[type="date"]').forEach((field) => {
+            let dateDebounceTimer = null;
+
+            const trySubmit = () => {
+                if (field.validity.badInput) {
+                    return;
+                }
+                if (field.value !== '' && parseInt(field.value.split('-')[0], 10) < 1000) {
+                    return;
+                }
+                form.submit();
+            };
+
+            ['input', 'change'].forEach((eventName) => {
+                field.addEventListener(eventName, () => {
+                    clearTimeout(dateDebounceTimer);
+                    dateDebounceTimer = setTimeout(trySubmit, 600);
+                });
+            });
+        });
+
+        form.querySelectorAll('input[type="text"], input[type="number"]').forEach((field) => {
+            field.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => form.submit(), 500);
+            });
+        });
+    })();
+
+    (function () {
+        const selectAll = document.getElementById('select-all-transactions');
+        const bulkBars = Array.from(document.querySelectorAll('.bulk-actions-bar'));
+        const bulkCountLabels = Array.from(document.querySelectorAll('.bulk-selected-count'));
+        const bulkDeleteBtns = Array.from(document.querySelectorAll('.bulk-delete-btn'));
+        const bulkForm = document.getElementById('bulk-delete-form');
+
+        if (!selectAll || bulkBars.length === 0 || bulkDeleteBtns.length === 0 || !bulkForm) {
+            return;
+        }
+
+        const getCheckboxes = () => Array.from(document.querySelectorAll('.tx-select-checkbox'));
+
+        function updateBulkBar() {
+            const checkboxes = getCheckboxes();
+            const checked = checkboxes.filter((cb) => cb.checked);
+
+            bulkBars.forEach((bar) => {
+                bar.classList.toggle('d-none', checked.length === 0);
+                bar.classList.toggle('d-flex', checked.length > 0);
+            });
+            bulkCountLabels.forEach((label) => { label.textContent = checked.length; });
+
+            selectAll.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
+            selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+        }
+
+        getCheckboxes().forEach((cb) => cb.addEventListener('change', updateBulkBar));
+
+        selectAll.addEventListener('change', () => {
+            getCheckboxes().forEach((cb) => { cb.checked = selectAll.checked; });
+            updateBulkBar();
+        });
+
+        const confirmBulkDeleteLabel = {{ 'Delete %count% selected transaction(s)?'|trans|json_encode|raw }};
+
+        bulkDeleteBtns.forEach((btn) => btn.addEventListener('click', () => {
+            const checked = getCheckboxes().filter((cb) => cb.checked);
+            if (checked.length === 0) {
+                return;
+            }
+
+            if (!confirm(confirmBulkDeleteLabel.replace('%count%', checked.length))) {
+                return;
+            }
+
+            bulkForm.querySelectorAll('input[name="ids[]"]').forEach((el) => el.remove());
+            checked.forEach((cb) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = cb.value;
+                bulkForm.appendChild(input);
+            });
+
+            bulkForm.submit();
+        }));
+
+        updateBulkBar();
+    })();
+    </script>
+{% endblock %}

@@ -1,0 +1,146 @@
+<div class="modal fade" id="quickPersonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'New person'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
+            </div>
+            <div class="modal-body">
+                <div id="quick-person-errors" class="alert alert-danger d-none"></div>
+                {{ form_start(personForm, {'action': path('app_person_quick_create'), 'attr': {'id': 'quick-person-form'}}) }}
+                    {{ form_row(personForm.name) }}
+                {{ form_end(personForm) }}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'Cancel'|trans }}</button>
+                <button type="submit" form="quick-person-form" class="btn btn-primary">{{ 'Create'|trans }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const realSelect = document.getElementById('{{ form.person.vars.id }}');
+    const searchInput = document.getElementById('person-search');
+    const resultsBox = document.getElementById('person-search-results');
+    const quickForm = document.getElementById('quick-person-form');
+    const quickErrors = document.getElementById('quick-person-errors');
+    const quickModalEl = document.getElementById('quickPersonModal');
+
+    if (!realSelect || !searchInput || !resultsBox) {
+        return;
+    }
+
+    realSelect.classList.add('d-none');
+
+    function getPeople() {
+        return Array.from(realSelect.options)
+            .filter((option) => option.value !== '')
+            .map((option) => ({ id: option.value, name: option.textContent }));
+    }
+
+    function hideResults() {
+        resultsBox.style.display = 'none';
+        resultsBox.innerHTML = '';
+    }
+
+    function selectPerson(person) {
+        realSelect.value = person.id;
+        searchInput.value = person.name;
+        hideResults();
+    }
+
+    function openQuickCreate(prefillName) {
+        if (quickForm) {
+            const nameField = quickForm.querySelector('input[type="text"]');
+            if (nameField) {
+                nameField.value = prefillName || '';
+            }
+        }
+        if (quickModalEl && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(quickModalEl).show();
+        }
+    }
+
+    function renderResults(matches, query) {
+        resultsBox.innerHTML = '';
+
+        matches.forEach((person) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.textContent = person.name;
+            item.addEventListener('click', () => selectPerson(person));
+            resultsBox.appendChild(item);
+        });
+
+        if (query && !matches.some((p) => p.name.toLowerCase() === query.toLowerCase())) {
+            const createItem = document.createElement('button');
+            createItem.type = 'button';
+            createItem.className = 'list-group-item list-group-item-action text-primary';
+            createItem.textContent = {{ '+ Create person "%query%"'|trans|json_encode|raw }}.replace('%query%', query);
+            createItem.addEventListener('click', () => openQuickCreate(query));
+            resultsBox.appendChild(createItem);
+        }
+
+        resultsBox.style.display = (matches.length > 0 || query) ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        realSelect.value = '';
+        const all = getPeople();
+        const matches = query
+            ? all.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+            : all;
+        renderResults(matches, query);
+    });
+
+    searchInput.addEventListener('focus', () => {
+        if (!searchInput.value) {
+            renderResults(getPeople(), '');
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (event.target !== searchInput && !resultsBox.contains(event.target)) {
+            hideResults();
+        }
+    });
+
+    const preselected = realSelect.options[realSelect.selectedIndex];
+    if (preselected && preselected.value !== '') {
+        searchInput.value = preselected.textContent;
+    }
+
+    if (quickForm) {
+        quickForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            quickErrors.classList.add('d-none');
+
+            const response = await fetch(quickForm.action, {
+                method: 'POST',
+                body: new FormData(quickForm),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                const option = document.createElement('option');
+                option.value = data.id;
+                option.textContent = data.name;
+                realSelect.appendChild(option);
+                selectPerson(data);
+                quickForm.reset();
+                if (quickModalEl && window.bootstrap) {
+                    window.bootstrap.Modal.getOrCreateInstance(quickModalEl).hide();
+                }
+            } else {
+                quickErrors.textContent = (data.errors || [{{ 'An error occurred.'|trans|json_encode|raw }}]).join(' ');
+                quickErrors.classList.remove('d-none');
+            }
+        });
+    }
+})();
+</script>

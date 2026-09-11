@@ -1,0 +1,138 @@
+<div class="modal fade" id="transactionFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionFormModalTitle">{{ 'Transaction'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
+            </div>
+            <div class="modal-body" id="transactionFormModalBody">
+                <div class="text-center py-5"><span class="spinner-border" role="status"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const modalEl = document.getElementById('transactionFormModal');
+    const modalBody = document.getElementById('transactionFormModalBody');
+    const modalTitle = document.getElementById('transactionFormModalTitle');
+
+    if (!modalEl || !modalBody || !modalTitle) {
+        return;
+    }
+
+    const LOADING_HTML = '<div class="text-center py-5"><span class="spinner-border" role="status"></span></div>';
+
+    function modalInstance() {
+        return bootstrap.Modal.getOrCreateInstance(modalEl);
+    }
+
+    function executeScripts(container) {
+        container.querySelectorAll('script').forEach((oldScript) => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach((attr) => newScript.setAttribute(attr.name, attr.value));
+            newScript.textContent = oldScript.textContent;
+            oldScript.replaceWith(newScript);
+        });
+    }
+
+    function wireCancelLinks() {
+        modalBody.querySelectorAll('[data-role="cancel"]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                modalInstance().hide();
+            });
+        });
+    }
+
+    let relocatedModals = [];
+
+    function cleanupRelocatedModals() {
+        relocatedModals.forEach((nestedModal) => {
+            bootstrap.Modal.getInstance(nestedModal)?.dispose();
+            nestedModal.remove();
+        });
+        relocatedModals = [];
+    }
+
+    function relocateNestedModals() {
+        modalBody.querySelectorAll('.modal').forEach((nestedModal) => {
+            document.body.appendChild(nestedModal);
+            relocatedModals.push(nestedModal);
+        });
+    }
+
+    function renderIntoModal(html) {
+        cleanupRelocatedModals();
+        modalBody.innerHTML = html;
+        executeScripts(modalBody);
+        relocateNestedModals();
+        wireCancelLinks();
+    }
+
+    function buildLoadUrl(rawUrl) {
+        const url = new URL(rawUrl, window.location.origin);
+        url.searchParams.set('redirect_to', window.location.pathname + window.location.search);
+        return url.toString();
+    }
+
+    async function openModal(url, title) {
+        cleanupRelocatedModals();
+        modalTitle.textContent = title;
+        modalBody.innerHTML = LOADING_HTML;
+        modalInstance().show();
+
+        try {
+            const response = await fetch(buildLoadUrl(url), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            renderIntoModal(await response.text());
+        } catch (error) {
+            modalBody.innerHTML = '<div class="alert alert-danger">{{ 'Unable to load the form.'|trans|e('js') }}</div>';
+        }
+    }
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-transaction-modal]');
+        if (!trigger) {
+            return;
+        }
+        event.preventDefault();
+        openModal(trigger.href, trigger.dataset.title || {{ 'Transaction'|trans|json_encode|raw }});
+    });
+
+    modalBody.addEventListener('submit', async (event) => {
+        const form = event.target.closest('form');
+        if (!form || form.id === 'quick-category-form' || form.hasAttribute('data-native-submit')) {
+            return;
+        }
+        event.preventDefault();
+
+        const response = await fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+
+        if (response.ok && contentType.includes('application/json')) {
+            const data = await response.json();
+            modalInstance().hide();
+
+            if (data.redirect && data.redirect !== window.location.pathname + window.location.search) {
+                window.location = data.redirect;
+            } else {
+                window.location.reload();
+            }
+            return;
+        }
+
+        renderIntoModal(await response.text());
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        cleanupRelocatedModals();
+        modalBody.innerHTML = LOADING_HTML;
+    });
+})();
+</script>

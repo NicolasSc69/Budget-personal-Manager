@@ -1,0 +1,568 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Dashboard'|trans }}{{ currentAccount ? ' · ' ~ currentAccount.label : '' }}{% endblock %}
+
+{% block body %}
+    {% set currentYear = "now"|date('Y') %}
+    <h1 class="h3 mb-4">
+        {{ 'Dashboard'|trans }}
+        {% if currentAccount %}
+            <small class="text-muted">· {{ currentAccount.label }}{% if currentAccount.person %} ({{ currentAccount.person.name }}){% endif %}</small>
+        {% else %}
+            <small class="text-muted">· {{ 'All accounts'|trans }}</small>
+        {% endif %}
+    </h1>
+
+    {% if not currentAccount %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h6 mb-2">{{ 'Accounts'|trans }}</h2>
+                {% if accountBalances|length > 0 %}
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <canvas id="accountsPolarChart" height="260"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm align-middle text-center mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>{{ 'Account'|trans }}</th>
+                                        <th>{{ 'Balance'|trans }}</th>
+                                        <th>{{ 'Upcoming balance'|trans }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in accountBalances %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ entry.url }}" class="text-decoration-none">
+                                                    {{ entry.account.label }}{% if entry.account.person %} ({{ entry.account.person.name }}){% endif %}
+                                                </a>
+                                                {% if entry.pendingRecurringCount > 0 %}
+                                                    <a href="{{ path('app_transaction_recurring', {'account': entry.account.id}) }}" class="btn btn-sm btn-outline-warning ms-2" title="{{ 'Recurring transactions to duplicate'|trans }}">
+                                                        <i class="bi bi-arrow-repeat"></i> {{ entry.pendingRecurringCount }}
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold {{ entry.balance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ entry.balance|money }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold {{ entry.upcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ entry.upcomingBalance|money }}</span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th>{{ 'Total across all accounts'|trans }}</th>
+                                        <th>
+                                            <span class="{{ totalBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ totalBalance|money }}</span>
+                                        </th>
+                                        <th>
+                                            <span class="{{ totalUpcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ totalUpcomingBalance|money }}</span>
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">
+                        {{ 'No account yet.'|trans }} <a href="{{ path('app_account_new') }}">{{ 'Create an account'|trans }}</a>.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if savingsStats %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">{{ 'Average interest earned / month'|trans }}</div>
+                        <div class="fs-3 fw-semibold amount-positive">
+                            {{ savingsStats.averageMonthlyInterest|money }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">{{ 'Projected interest by end of %year%'|trans({'%year%': "now"|date('Y')}) }}</div>
+                        <div class="fs-3 fw-semibold amount-positive">
+                            {{ savingsStats.projectedYearEndInterest|money }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-muted small mt-n3 mb-4">
+            {{ 'Estimate based on the current balance and the declared rate (%rate% %), without compounding.'|trans({'%rate%': currentAccount.interestRate|number_format(2, ',', ' ')}) }}
+        </p>
+    {% endif %}
+
+    {% if progress %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h6">{{ 'Progress toward the goal'|trans }}</h2>
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>{{ progress.balance|money }}</span>
+                    <span>{{ progress.max|money }}</span>
+                </div>
+                <div class="progress" role="progressbar" aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100" style="height: 24px;">
+                    <div id="goal-progress-bar" class="progress-bar {{ progress.percent >= 100 ? 'bg-success' : 'bg-primary' }}" data-target="{{ progress.percent }}" style="width: 0%; transition: width 1.2s ease-out;">
+                        <span id="goal-progress-label">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 mb-0">{{ 'Latest transactions'|trans }}</h2>
+                <div class="d-flex gap-2">
+                    <a href="{{ path('app_transaction_new', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-primary" data-transaction-modal data-title="{{ 'New transaction'|trans }}">
+                        <i class="bi bi-plus-lg"></i> {{ 'New transaction'|trans }}
+                    </a>
+                    <a href="{{ path('app_transaction_index', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-outline-secondary">
+                        {{ 'View all transactions'|trans }}
+                    </a>
+                    <a href="{{ path('app_transaction_recurring', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-arrow-repeat"></i> {{ 'Recurring transactions to duplicate (%count%)'|trans({'%count%': pendingRecurringCount}) }}
+                    </a>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="text-muted small">{{ 'Current balance as of %date%'|trans({'%date%': balanceDate}) }}</div>
+                    <div class="fs-3 fw-semibold {{ currentBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
+                        {{ currentBalance|money }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">{{ 'Upcoming balance'|trans }}</div>
+                    <div class="fs-3 fw-semibold {{ upcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
+                        {{ upcomingBalance|money }}
+                    </div>
+                </div>
+                {% if currentAccount and not currentAccount.isSavings %}
+                    <div class="col-md-4">
+                        <div class="text-muted small">
+                            {{ 'Projected balance'|trans }}
+                            <i class="bi bi-info-circle" title="{{ 'Estimate based on the average salary between the 1st and the last day of the month.'|trans }}"></i>
+                        </div>
+                        <div class="fs-3 fw-semibold {{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
+                            {{ forecastBalance|money }}
+                        </div>
+                    </div>
+                {% endif %}
+                {% if savingsStats %}
+                    <div class="col-md-4">
+                        <div class="text-muted small">{{ 'Upcoming balance + interest'|trans }}</div>
+                        <div class="fs-3 fw-semibold amount-positive">
+                            {{ savingsStats.upcomingBalanceWithInterest|money }}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>{{ 'Title'|trans }}</th>
+                            <th>{{ 'Date'|trans }}</th>
+                            {% if not currentAccount %}
+                                <th>{{ 'Account'|trans }}</th>
+                            {% endif %}
+                            <th>{{ 'Tag'|trans }}</th>
+                            <th class="text-end">{{ 'Amount'|trans }}</th>
+                            <th class="text-center">{{ 'Actions'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for transaction in recentTransactions %}
+                        <tr class="{{ transaction.upcoming ? 'tx-row-upcoming table-warning fst-italic' : 'tx-row-done' }}">
+                            <td>{{ transaction.title ?: '—' }}</td>
+                            <td>{{ transaction.date|date('d/m/Y') }}</td>
+                            {% if not currentAccount %}
+                                <td>
+                                    {{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}
+                                </td>
+                            {% endif %}
+                            <td>
+                                <a href="{{ path('app_transaction_index', (currentAccount ? {'account': currentAccount.id} : {})|merge({'category': transaction.category.id})) }}" class="badge text-decoration-none" style="background-color: {{ transaction.category.color }};">
+                                    {{ transaction.category.fullName }}
+                                </a>
+                            </td>
+                            <td class="text-end {{ transaction.amount < 0 ? 'amount-negative' : 'amount-positive' }}">
+                                {{ transaction.amount|money }}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ path('app_transaction_show', {'id': transaction.id}) }}" class="btn btn-sm btn-outline-secondary" data-transaction-modal data-title="{{ 'Transaction detail'|trans }}">{{ 'View'|trans }}</a>
+                                <a href="{{ path('app_transaction_edit', {'id': transaction.id}) }}" class="btn btn-sm btn-outline-secondary" data-transaction-modal data-title="{{ 'Edit transaction'|trans }}">{{ 'Edit'|trans }}</a>
+                                <a href="{{ path('app_transaction_new', {'duplicate': transaction.id}) }}" class="btn btn-sm btn-outline-secondary" title="{{ 'Duplicate this transaction'|trans }}" data-transaction-modal data-title="{{ 'Duplicate transaction'|trans }}">
+                                    <i class="bi bi-copy"></i> {{ 'Duplicate'|trans }}
+                                </a>
+                                {{ include('transaction/_delete_form.html.twig', {buttonClass: 'btn-sm'}) }}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="{{ currentAccount ? 5 : 6 }}" class="text-center text-muted py-4">{{ 'No transaction yet'|trans }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if currentAccount %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="text-muted small mb-1">{{ 'Balance trend from January 1 to December 31, %year%'|trans({'%year%': "now"|date('Y')}) }}</div>
+            <canvas id="dailyBalanceChart" height="90"></canvas>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <ul class="nav nav-tabs mb-3" id="monthlyYearTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-year="previous" type="button">{{ 'Income / Expenses by month (%year%)'|trans({'%year%': currentYear - 1}) }}</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-year="current" type="button">{{ 'Income / Expenses by month (%year%)'|trans({'%year%': currentYear}) }}</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-year="next" type="button">{{ 'Income / Expenses by month (%year%)'|trans({'%year%': currentYear + 1}) }}</button>
+                </li>
+            </ul>
+            <canvas id="monthlyChart" height="110"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if currentAccount %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="pieYearTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-year="previous" type="button">{{ 'Income / Expenses (%year%)'|trans({'%year%': currentYear - 1}) }}</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-year="current" type="button">{{ 'Income / Expenses (%year%)'|trans({'%year%': currentYear}) }}</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-year="next" type="button">{{ 'Income / Expenses (%year%)'|trans({'%year%': currentYear + 1}) }}</button>
+                        </li>
+                    </ul>
+                    <canvas id="incomeExpensePieChart" height="140"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="text-muted small">{{ 'Click on a tag to see its matching transactions.'|trans }}</p>
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="category-income-tab" data-bs-toggle="tab" data-bs-target="#category-income-pane" type="button" role="tab" aria-controls="category-income-pane" aria-selected="false">
+                                {{ 'Top 10 income by tag'|trans }}
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="category-expense-tab" data-bs-toggle="tab" data-bs-target="#category-expense-pane" type="button" role="tab" aria-controls="category-expense-pane" aria-selected="true">
+                                {{ 'Top 10 expenses by tag'|trans }}
+                            </button>
+                        </li>
+                    </ul>
+                    <p class="text-muted small mt-n2 mb-2">({{ categoryBreakdownPeriodLabel }})</p>
+                    <div class="tab-content">
+                        <div class="tab-pane fade" id="category-income-pane" role="tabpanel" aria-labelledby="category-income-tab" tabindex="0">
+                            {% if categoryBreakdownIncome|length > 0 %}
+                                <canvas id="categoryChartIncome" height="220" class="mb-3"></canvas>
+                                <div class="list-group">
+                                    {% for entry in categoryBreakdownIncome %}
+                                        <a href="{{ entry.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <span class="badge" style="background-color: {{ entry.color }};">&nbsp;&nbsp;&nbsp;</span>
+                                                {{ entry.name }}
+                                            </span>
+                                            <span class="fw-semibold">{{ entry.total|money }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted small mb-0">{{ 'No income recorded for this period.'|trans }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="tab-pane fade show active" id="category-expense-pane" role="tabpanel" aria-labelledby="category-expense-tab" tabindex="0">
+                            {% if categoryBreakdownExpense|length > 0 %}
+                                <canvas id="categoryChartExpense" height="220" class="mb-3"></canvas>
+                                <div class="list-group">
+                                    {% for entry in categoryBreakdownExpense %}
+                                        <a href="{{ entry.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <span class="badge" style="background-color: {{ entry.color }};">&nbsp;&nbsp;&nbsp;</span>
+                                                {{ entry.name }}
+                                            </span>
+                                            <span class="fw-semibold">{{ entry.total|money }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted small mb-0">{{ 'No expense recorded for this period.'|trans }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        (function () {
+            const bar = document.getElementById('goal-progress-bar');
+            const label = document.getElementById('goal-progress-label');
+            if (!bar || !label) {
+                return;
+            }
+
+            const target = parseFloat(bar.dataset.target) || 0;
+            const duration = 1200;
+            let start = null;
+
+            requestAnimationFrame(() => {
+                bar.style.width = target + '%';
+            });
+
+            function step(timestamp) {
+                if (start === null) {
+                    start = timestamp;
+                }
+                const elapsed = timestamp - start;
+                const progress = Math.min(1, elapsed / duration);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                label.textContent = Math.round(eased * target) + '%';
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    label.textContent = Math.round(target) + '%';
+                }
+            }
+
+            requestAnimationFrame(step);
+        })();
+
+        const chartData = {{ chartDataJson|raw }};
+        const ACCOUNT_PALETTE = ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0', '#6c757d', '#dc3545'];
+
+        const isDarkTheme = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        Chart.defaults.color = isDarkTheme ? '#212529' : '#000000';
+        Chart.defaults.borderColor = isDarkTheme ? '#495057' : '#dee2e6';
+
+        function goToUrlOnClick(chart, urls) {
+            return function (evt) {
+                const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+                if (points.length > 0 && urls[points[0].index]) {
+                    window.location = urls[points[0].index];
+                }
+            };
+        }
+
+        {% if not currentAccount and accountBalances|length > 0 %}
+        const accountsChart = new Chart(document.getElementById('accountsPolarChart'), {
+            type: 'doughnut',
+            data: {
+                labels: chartData.accountLabels,
+                datasets: [{
+                    data: chartData.accountBalances,
+                    backgroundColor: chartData.accountLabels.map((label, i) => ACCOUNT_PALETTE[i % ACCOUNT_PALETTE.length]),
+                }],
+            },
+            options: {
+                responsive: true,
+                onHover: (evt, elements) => {
+                    evt.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                },
+                plugins: {
+                    legend: { labels: { font: { weight: 'bold' }, color: isDarkTheme ? '#ffffff' : '#000000' } },
+                },
+            },
+        });
+        document.getElementById('accountsPolarChart').onclick = goToUrlOnClick(accountsChart, chartData.accountUrls);
+        {% endif %}
+
+        {% if currentAccount %}
+        const dailyBalanceChartTextStyle = { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}) };
+        const dailyBalanceDatasets = [{
+            label: '{{ (savingsStats ? 'Actual balance' : 'Balance')|trans|e('js') }}',
+            data: chartData.dailyBalance.values,
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.15)',
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0.1,
+            spanGaps: false,
+        }];
+        {% if savingsStats %}
+        dailyBalanceDatasets.push({
+            label: '{{ 'Projected balance (with interest)'|trans|e('js') }}',
+            data: chartData.dailyBalance.forecastValues,
+            borderColor: '#198754',
+            backgroundColor: 'rgba(25, 135, 84, 0.15)',
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0.1,
+            spanGaps: false,
+        });
+        {% endif %}
+
+        new Chart(document.getElementById('dailyBalanceChart'), {
+            type: 'line',
+            data: {
+                labels: chartData.dailyBalance.labels,
+                datasets: dailyBalanceDatasets,
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: {{ savingsStats ? 'true' : 'false' }},
+                        labels: { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}) },
+                    },
+                },
+                scales: {
+                    x: {
+                        ticks: { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}), maxTicksLimit: 12 },
+                    },
+                    y: { ticks: dailyBalanceChartTextStyle },
+                },
+            },
+        });
+
+        function setupYearTabs(tabsId, onSelect) {
+            const nav = document.getElementById(tabsId);
+            if (!nav) {
+                return;
+            }
+
+            nav.querySelectorAll('button[data-year]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    nav.querySelectorAll('button[data-year]').forEach((b) => b.classList.remove('active'));
+                    button.classList.add('active');
+                    onSelect(button.dataset.year);
+                });
+            });
+        }
+
+        const monthlyChartTextStyle = { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}) };
+        const monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+            type: 'bar',
+            data: {
+                labels: chartData.years.current.monthLabels,
+                datasets: [
+                    { label: '{{ 'Income'|trans|e('js') }}', data: chartData.years.current.income, backgroundColor: '#198754' },
+                    { label: '{{ 'Expenses'|trans|e('js') }}', data: chartData.years.current.expense, backgroundColor: '#dc3545' },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: monthlyChartTextStyle },
+                },
+                scales: {
+                    x: { ticks: monthlyChartTextStyle },
+                    y: { beginAtZero: true, ticks: monthlyChartTextStyle },
+                },
+            },
+        });
+
+        setupYearTabs('monthlyYearTabs', function (year) {
+            const yearData = chartData.years[year];
+            monthlyChart.data.labels = yearData.monthLabels;
+            monthlyChart.data.datasets[0].data = yearData.income;
+            monthlyChart.data.datasets[1].data = yearData.expense;
+            monthlyChart.update();
+        });
+
+        function buildCategoryChart(canvasId, categoryData, boldText, legendColor) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                return;
+            }
+
+            const chart = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryData.labels,
+                    datasets: [{ data: categoryData.totals, backgroundColor: categoryData.colors }],
+                },
+                options: {
+                    responsive: true,
+                    onHover: (evt, elements) => {
+                        evt.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    },
+                    ...(boldText ? {
+                        plugins: {
+                            legend: { labels: { font: { weight: 'bold' }, ...(legendColor ? { color: legendColor } : {}) } },
+                        },
+                    } : {}),
+                },
+            });
+            canvas.onclick = goToUrlOnClick(chart, categoryData.urls);
+
+            return chart;
+        }
+
+        {% if categoryBreakdownExpense|length > 0 %}
+        buildCategoryChart('categoryChartExpense', chartData.categoryExpense, true, isDarkTheme ? '#ffffff' : '#000000');
+        {% endif %}
+
+        {% if categoryBreakdownIncome|length > 0 %}
+        const categoryIncomeTab = document.getElementById('category-income-tab');
+        let categoryIncomeChart = null;
+        categoryIncomeTab.addEventListener('shown.bs.tab', function () {
+            if (!categoryIncomeChart) {
+                categoryIncomeChart = buildCategoryChart('categoryChartIncome', chartData.categoryIncome);
+            }
+        });
+        {% endif %}
+
+        const incomeExpensePieChart = new Chart(document.getElementById('incomeExpensePieChart'), {
+            type: 'pie',
+            data: {
+                labels: [{{ 'Income'|trans|json_encode|raw }}, {{ 'Expenses'|trans|json_encode|raw }}],
+                datasets: [{ data: chartData.years.current.totals, backgroundColor: ['#198754', '#dc3545'] }],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { font: { weight: 'bold' }, color: isDarkTheme ? '#fff' : '#000' } },
+                },
+            },
+        });
+
+        setupYearTabs('pieYearTabs', function (year) {
+            incomeExpensePieChart.data.datasets[0].data = chartData.years[year].totals;
+            incomeExpensePieChart.update();
+        });
+        {% endif %}
+
+    </script>
+{% endblock %}

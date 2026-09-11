@@ -1,0 +1,150 @@
+{{ form_start(form, formAction is defined and formAction ? {'action': formAction} : {}) }}
+    {{ form_row(form.date) }}
+    {{ form_row(form.recurrence) }}
+    <div id="tx-recurrence-end-date-wrapper">
+        {{ form_row(form.recurrenceEndDate) }}
+    </div>
+    {{ form_row(form.type) }}
+    {{ form_row(form.amount) }}
+    {{ form_row(form.account) }}
+    {{ form_row(form.destinationAccount) }}
+    {{ include('transaction/_category_picker.html.twig', {form: form}) }}
+    <div class="mb-3">
+        {{ form_label(form.title) }}
+        <div class="position-relative">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="right: 0.75rem;"></i>
+            {{ form_widget(form.title) }}
+            <div id="existing-title-results" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1050; display: none; max-height: 240px; overflow-y: auto;"></div>
+        </div>
+        {{ form_help(form.title) }}
+        {{ form_errors(form.title) }}
+    </div>
+    {{ form_row(form.isCheque) }}
+    <div id="tx-cheque-number-wrapper">
+        {{ form_row(form.chequeNumber) }}
+    </div>
+    <div class="mt-3">
+        <button class="btn btn-primary">{{ button_label|default('Save'|trans) }}</button>
+        <a href="{{ path('app_transaction_index') }}" class="btn btn-outline-secondary" data-role="cancel">{{ 'Cancel'|trans }}</a>
+    </div>
+{{ form_end(form) }}
+
+{% if transaction is defined and transaction and transaction.id %}
+    <div class="mt-3">
+        {{ include('transaction/_delete_form.html.twig') }}
+    </div>
+{% endif %}
+
+<script>
+(function () {
+    const accountSelect = document.getElementById('{{ form.account.vars.id }}');
+    const destinationSelect = document.getElementById('{{ form.destinationAccount.vars.id }}');
+
+    if (!accountSelect || !destinationSelect) {
+        return;
+    }
+
+    function syncDestinationOptions() {
+        Array.from(destinationSelect.options).forEach((option) => {
+            const isSelectedAccount = option.value !== '' && option.value === accountSelect.value;
+            option.disabled = isSelectedAccount;
+
+            if (isSelectedAccount && option.selected) {
+                destinationSelect.value = '';
+            }
+        });
+    }
+
+    syncDestinationOptions();
+    accountSelect.addEventListener('change', syncDestinationOptions);
+})();
+</script>
+
+<script>
+(function () {
+    const chequeCheckbox = document.getElementById('{{ form.isCheque.vars.id }}');
+    const chequeWrapper = document.getElementById('tx-cheque-number-wrapper');
+
+    if (!chequeCheckbox || !chequeWrapper) {
+        return;
+    }
+
+    function syncChequeWrapper() {
+        chequeWrapper.classList.toggle('d-none', !chequeCheckbox.checked);
+    }
+
+    syncChequeWrapper();
+    chequeCheckbox.addEventListener('change', syncChequeWrapper);
+})();
+</script>
+
+<script>
+(function () {
+    const recurrenceSelect = document.getElementById('{{ form.recurrence.vars.id }}');
+    const endDateWrapper = document.getElementById('tx-recurrence-end-date-wrapper');
+
+    if (!recurrenceSelect || !endDateWrapper) {
+        return;
+    }
+
+    function syncEndDateWrapper() {
+        endDateWrapper.classList.toggle('d-none', 'none' === recurrenceSelect.value);
+    }
+
+    syncEndDateWrapper();
+    recurrenceSelect.addEventListener('change', syncEndDateWrapper);
+})();
+</script>
+
+<script>
+(function () {
+    const existingTitles = {{ existingTitlesJson|default('[]')|raw }};
+    const titleInput = document.getElementById('{{ form.title.vars.id }}');
+    const resultsBox = document.getElementById('existing-title-results');
+
+    if (!titleInput || !resultsBox) {
+        return;
+    }
+
+    function hideResults() {
+        resultsBox.style.display = 'none';
+        resultsBox.innerHTML = '';
+    }
+
+    function renderResults(query) {
+        const matches = existingTitles.filter((title) => title.toLowerCase().includes(query.toLowerCase()));
+        resultsBox.innerHTML = '';
+
+        matches.slice(0, 20).forEach((title) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.textContent = title;
+            item.addEventListener('click', () => {
+                titleInput.value = title;
+                hideResults();
+            });
+            resultsBox.appendChild(item);
+        });
+
+        resultsBox.style.display = matches.length > 0 ? 'block' : 'none';
+    }
+
+    titleInput.addEventListener('input', () => {
+        const query = titleInput.value.trim();
+        if (!query) {
+            hideResults();
+            return;
+        }
+        renderResults(query);
+    });
+
+    document.addEventListener('click', (event) => {
+        if (event.target !== titleInput && !resultsBox.contains(event.target)) {
+            hideResults();
+        }
+    });
+})();
+</script>
+
+{{ include('transaction/_category_quick_modal.html.twig', {form: form, categoryForm: categoryForm}) }}

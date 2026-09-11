@@ -1,0 +1,222 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Translate interface'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">{{ 'Translate interface'|trans }}</h1>
+        <a href="{{ path('app_admin_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link{{ activeTab == 'languages' ? ' active' : '' }}" id="tab-languages-btn" data-bs-toggle="tab" data-bs-target="#tab-languages" type="button" role="tab" aria-controls="tab-languages" aria-selected="{{ activeTab == 'languages' ? 'true' : 'false' }}">
+                {{ 'Languages'|trans }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link{{ activeTab == 'edit' ? ' active' : '' }}" id="tab-edit-btn" data-bs-toggle="tab" data-bs-target="#tab-edit" type="button" role="tab" aria-controls="tab-edit" aria-selected="{{ activeTab == 'edit' ? 'true' : 'false' }}">
+                {{ 'Edit translations'|trans }}
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade{{ activeTab == 'languages' ? ' show active' : '' }}" id="tab-languages" role="tabpanel" aria-labelledby="tab-languages-btn">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted small">
+                        {{ 'English is the source language of this application. Choose the default language used across the whole site, and override any text below by editing its translation.'|trans }}
+                    </p>
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>{{ 'Language'|trans }}</th>
+                                <th>{{ 'Translated'|trans }}</th>
+                                <th>{{ 'Default site language'|trans }}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for locale in locales %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ path('app_admin_translations', {lang: locale, tab: 'edit'}) }}">{{ locale|upper }}</a>
+                                        {% if locale == 'en' %}<span class="badge text-bg-secondary ms-1">{{ 'source'|trans }}</span>{% endif %}
+                                    </td>
+                                    <td>{{ localeStats[locale].translated }} / {{ localeStats[locale].total }}</td>
+                                    <td>
+                                        {% if locale == defaultLocale %}
+                                            <span class="badge text-bg-success"><i class="bi bi-check-lg"></i> {{ 'Default'|trans }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if locale != defaultLocale %}
+                                            <form method="post" action="{{ path('app_admin_translations_default_locale') }}" class="d-inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('admin_translations_default_locale') }}">
+                                                <input type="hidden" name="locale" value="{{ locale }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">{{ 'Set as default'|trans }}</button>
+                                            </form>
+                                        {% endif %}
+                                        {% if locale != 'en' and locale != defaultLocale %}
+                                            <form method="post" action="{{ path('app_admin_translations_remove_locale') }}" class="d-inline" onsubmit="return confirm('{{ 'Remove this language?'|trans|e('js') }}');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('admin_translations_remove_locale') }}">
+                                                <input type="hidden" name="locale" value="{{ locale }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'Delete'|trans }}</button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <form method="post" action="{{ path('app_admin_translations_add_locale') }}" class="d-flex align-items-center gap-2 mt-3">
+                        <input type="hidden" name="_token" value="{{ csrf_token('admin_translations_add_locale') }}">
+                        <label class="small text-muted mb-0" for="new-locale">{{ 'Add a language'|trans }}</label>
+                        <select id="new-locale" name="locale" class="form-select form-select-sm" style="width: auto;" required>
+                            <option value="" selected disabled>{{ 'Choose a language…'|trans }}</option>
+                            {% for group in addableLocales %}
+                                <optgroup label="{{ group.label }}">
+                                    {% for code, name in group.locales %}
+                                        <option value="{{ code }}">{{ name }} ({{ code }})</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-plus-lg"></i> {{ 'Add'|trans }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h2 class="h6">{{ 'Currency'|trans }}</h2>
+                    <p class="text-muted small">
+                        {{ 'The currency used throughout the app cannot be reliably detected from the site language alone (e.g. "English" could mean USD, GBP or AUD), so it must be confirmed here. Currently displayed as %symbol%, like € for France.'|trans({'%symbol%': currencySymbol}) }}
+                    </p>
+                    {% set currencyIsCommon = currency in currencyChoices|keys %}
+                    <form method="post" action="{{ path('app_admin_translations_currency') }}" class="d-flex align-items-center gap-2" id="currency-form">
+                        <input type="hidden" name="_token" value="{{ csrf_token('admin_translations_currency') }}">
+                        <input type="hidden" id="currency-value" name="currency" value="{{ currency }}">
+                        <label class="small text-muted mb-0" for="currency-select">{{ 'Displayed currency'|trans }}</label>
+                        <select id="currency-select" class="form-select form-select-sm" style="width: auto;">
+                            {% for code, symbol in currencyChoices %}
+                                <option value="{{ code }}"{{ code == currency ? ' selected' : '' }}>{{ code }} ({{ symbol }}){{ code == guessedCurrency ? ' — ' ~ 'suggested'|trans : '' }}</option>
+                            {% endfor %}
+                            <option value="__other__"{{ currencyIsCommon ? '' : ' selected' }}>{{ 'Other (enter ISO code)…'|trans }}</option>
+                        </select>
+                        <input type="text" id="currency-other" class="form-control form-control-sm" style="width: 6rem;{{ currencyIsCommon ? ' display: none;' : '' }}" maxlength="3" pattern="[A-Za-z]{3}" placeholder="{{ 'e.g. EUR'|trans }}" value="{{ currencyIsCommon ? '' : currency }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-check-lg"></i> {{ 'Save'|trans }}
+                        </button>
+                    </form>
+                    <script>
+                    (function () {
+                        var select = document.getElementById('currency-select');
+                        var other = document.getElementById('currency-other');
+                        var hidden = document.getElementById('currency-value');
+                        var form = document.getElementById('currency-form');
+
+                        function sync() {
+                            hidden.value = ('__other__' === select.value ? other.value : select.value).toUpperCase();
+                        }
+
+                        select.addEventListener('change', function () {
+                            var isOther = '__other__' === select.value;
+                            other.style.display = isOther ? '' : 'none';
+                            if (isOther) {
+                                other.focus();
+                            }
+                            sync();
+                        });
+                        other.addEventListener('input', sync);
+                        form.addEventListener('submit', sync);
+                    })();
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade{{ activeTab == 'edit' ? ' show active' : '' }}" id="tab-edit" role="tabpanel" aria-labelledby="tab-edit-btn">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 mb-0">{{ 'Edit translations'|trans }}</h2>
+                        <form method="get" action="{{ path('app_admin_translations') }}" class="d-flex align-items-center gap-2">
+                            <input type="hidden" name="tab" value="edit">
+                            <label class="small text-muted mb-0" for="lang-select">{{ 'Editing language'|trans }}</label>
+                            <select id="lang-select" name="lang" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                                {% for locale in locales %}
+                                    <option value="{{ locale }}"{{ locale == editedLocale ? ' selected' : '' }}>{{ locale|upper }}{{ locale == 'en' ? ' (' ~ 'source'|trans ~ ')' : '' }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div>
+
+                    {% if editedLocale == 'en' %}
+                        <p class="text-muted small">
+                            {{ 'English is the source language: text is authored directly in the application templates. Pick another language above to add or edit its overrides.'|trans }}
+                        </p>
+                    {% else %}
+                        <div class="mb-3">
+                            <input type="text" id="translation-filter" class="form-control form-control-sm" placeholder="{{ 'Search strings…'|trans }}">
+                        </div>
+
+                        <form method="post" action="{{ path('app_admin_translations_save') }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('admin_translations_save') }}">
+                            <input type="hidden" name="locale" value="{{ editedLocale }}">
+
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="translation-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 45%;">{{ 'English (source)'|trans }}</th>
+                                            <th>{{ editedLocale|upper }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for string in strings %}
+                                            <tr class="translation-row">
+                                                <td class="translation-source">{{ string.source }}</td>
+                                                <td>
+                                                    <input type="hidden" name="ids[{{ string.key }}]" value="{{ string.source }}">
+                                                    <input type="text" name="translations[{{ string.key }}]" value="{{ string.translation }}" class="form-control form-control-sm">
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> {{ 'Save translations'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if editedLocale != 'en' %}
+        <script>
+        (function () {
+            var filter = document.getElementById('translation-filter');
+            var rows = document.querySelectorAll('#translation-table .translation-row');
+
+            filter.addEventListener('input', function () {
+                var term = filter.value.trim().toLowerCase();
+                rows.forEach(function (row) {
+                    var text = row.querySelector('.translation-source').textContent.toLowerCase();
+                    row.style.display = ('' === term || text.includes(term)) ? '' : 'none';
+                });
+            });
+        })();
+        </script>
+    {% endif %}
+{% endblock %}

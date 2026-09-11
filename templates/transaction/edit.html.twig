@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Edit transaction'|trans }}{% endblock %}
+
+{% block body %}
+    <h1 class="h3 mb-3">{{ 'Edit transaction'|trans }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex gap-2 mb-3">
+                <span class="badge {{ transaction.upcoming ? 'text-bg-warning' : 'text-bg-secondary' }}">
+                    {{ (transaction.upcoming ? 'Upcoming' : 'Processed')|trans }}
+                </span>
+                {% if transaction.recurring %}
+                    <span class="badge text-bg-info" title="{{ 'Recurring template: %recurrence%'|trans({'%recurrence%': transaction.recurrence.label|trans}) }}"><i class="bi bi-arrow-repeat"></i> {{ transaction.recurrence.label|trans }}</span>
+                {% elseif transaction.generatedFromRecurrence %}
+                    <span class="badge text-bg-light text-muted" title="{{ 'Automatically generated from a recurring transaction'|trans }}"><i class="bi bi-arrow-repeat"></i> {{ 'Auto'|trans }}</span>
+                {% endif %}
+            </div>
+            {{ include('transaction/_form.html.twig', {'button_label': 'Update'|trans}) }}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Unit tests'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">{{ 'Unit tests'|trans }}</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_admin_index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+            </a>
+            <form method="post" action="{{ path('app_admin_tests_run') }}" onsubmit="return confirm('{{ 'Run the test suite now?'|trans|e('js') }}');">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_tests_run') }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-play-fill"></i> {{ 'Run tests'|trans }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if not report.ran %}
+        <div class="alert alert-info">{{ 'No test report yet. Click "Run tests" to generate one.'|trans }}</div>
+        {% if outputLog %}
+            <div class="card">
+                <div class="card-header">{{ 'Raw output of the last attempt'|trans }}</div>
+                <pre class="card-body mb-0 small" style="white-space: pre-wrap;">{{ outputLog }}</pre>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="text-muted small">{{ 'Tests'|trans }}</div>
+                <div class="fs-3 fw-semibold">{{ report.totals.tests }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">{{ 'Assertions'|trans }}</div>
+                <div class="fs-3 fw-semibold">{{ report.totals.assertions }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">{{ 'Failures / errors'|trans }}</div>
+                <div class="fs-3 fw-semibold {{ (report.totals.failures + report.totals.errors) > 0 ? 'amount-negative' : 'amount-positive' }}">
+                    {{ report.totals.failures + report.totals.errors }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">{{ 'Duration'|trans }}</div>
+                <div class="fs-3 fw-semibold">{{ report.totals.time|number_format(2, ',', ' ') }} s</div>
+            </div>
+        </div>
+
+        <p class="text-muted small">
+            {{ 'Last run: %date%'|trans({'%date%': report.generatedAt ? report.generatedAt|date('d/m/Y H:i:s') : '—'}) }}
+        </p>
+
+        {% for suite in report.suites %}
+            <div class="card mb-3">
+                <div class="card-header">{{ suite.name }}</div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>{{ 'Test'|trans }}</th>
+                                <th class="text-center">{{ 'Status'|trans }}</th>
+                                <th class="text-end">{{ 'Duration'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in suite.cases %}
+                                <tr>
+                                    <td>
+                                        {{ case.name }}
+                                        {% if case.message %}
+                                            <div class="text-muted small" style="white-space: pre-wrap;">{{ case.message }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if case.status == 'passed' %}
+                                            <span class="badge text-bg-success">{{ 'Passed'|trans }}</span>
+                                        {% elseif case.status == 'skipped' %}
+                                            <span class="badge text-bg-secondary">{{ 'Skipped'|trans }}</span>
+                                        {% else %}
+                                            <span class="badge text-bg-danger">{{ 'Failed'|trans }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ case.time|number_format(3, ',', ' ') }} s</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

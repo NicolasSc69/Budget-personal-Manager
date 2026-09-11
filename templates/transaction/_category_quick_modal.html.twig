@@ -1,0 +1,159 @@
+<div class="modal fade" id="quickCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'New tag'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
+            </div>
+            <div class="modal-body">
+                <div id="quick-category-errors" class="alert alert-danger d-none"></div>
+                {{ form_start(categoryForm, {'action': path('app_category_quick_create'), 'attr': {'id': 'quick-category-form'}}) }}
+                    {{ form_row(categoryForm.name) }}
+                    {{ form_row(categoryForm.color) }}
+                {{ form_end(categoryForm) }}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'Cancel'|trans }}</button>
+                <button type="submit" form="quick-category-form" class="btn btn-primary">{{ 'Create'|trans }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const realSelect = document.getElementById('{{ form.category.vars.id }}');
+    const searchInput = document.getElementById('category-search');
+    const resultsBox = document.getElementById('category-search-results');
+    const quickForm = document.getElementById('quick-category-form');
+    const quickErrors = document.getElementById('quick-category-errors');
+    const quickModalEl = document.getElementById('quickCategoryModal');
+
+    if (!realSelect || !searchInput || !resultsBox) {
+        return;
+    }
+
+    realSelect.classList.add('d-none');
+
+    function getCategories() {
+        return Array.from(realSelect.options)
+            .filter((option) => option.value !== '')
+            .map((option) => ({
+                id: option.value,
+                name: option.textContent,
+                color: option.dataset.color || '#6c757d',
+            }));
+    }
+
+    function hideResults() {
+        resultsBox.style.display = 'none';
+        resultsBox.innerHTML = '';
+    }
+
+    function selectCategory(category) {
+        realSelect.value = category.id;
+        searchInput.value = category.name;
+        hideResults();
+    }
+
+    function openQuickCreate(prefillName) {
+        if (quickForm) {
+            const nameField = quickForm.querySelector('input[type="text"]');
+            if (nameField) {
+                nameField.value = prefillName || '';
+            }
+        }
+        if (quickModalEl && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(quickModalEl).show();
+        }
+    }
+
+    const quickNewBtn = document.getElementById('category-quick-new-btn');
+    if (quickNewBtn) {
+        quickNewBtn.addEventListener('click', () => openQuickCreate(searchInput.value.trim()));
+    }
+
+    const createTagLabel = {{ 'Create tag "%tag%"'|trans|json_encode|raw }};
+
+    function renderResults(matches, query) {
+        resultsBox.innerHTML = '';
+
+        matches.forEach((category) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+            item.innerHTML = '<span class="badge" style="background-color:' + category.color + ';">&nbsp;&nbsp;&nbsp;</span> ' + category.name;
+            item.addEventListener('click', () => selectCategory(category));
+            resultsBox.appendChild(item);
+        });
+
+        if (query && !matches.some((c) => c.name.toLowerCase() === query.toLowerCase())) {
+            const createItem = document.createElement('button');
+            createItem.type = 'button';
+            createItem.className = 'list-group-item list-group-item-action text-primary';
+            createItem.textContent = '+ ' + createTagLabel.replace('%tag%', query);
+            createItem.addEventListener('click', () => openQuickCreate(query));
+            resultsBox.appendChild(createItem);
+        }
+
+        resultsBox.style.display = (matches.length > 0 || query) ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        realSelect.value = '';
+        const all = getCategories();
+        const matches = query
+            ? all.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
+            : all;
+        renderResults(matches, query);
+    });
+
+    searchInput.addEventListener('focus', () => {
+        if (!searchInput.value) {
+            renderResults(getCategories(), '');
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (event.target !== searchInput && !resultsBox.contains(event.target)) {
+            hideResults();
+        }
+    });
+
+    const preselected = realSelect.options[realSelect.selectedIndex];
+    if (preselected && preselected.value !== '') {
+        searchInput.value = preselected.textContent;
+    }
+
+    if (quickForm) {
+        quickForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            quickErrors.classList.add('d-none');
+
+            const response = await fetch(quickForm.action, {
+                method: 'POST',
+                body: new FormData(quickForm),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                const option = document.createElement('option');
+                option.value = data.id;
+                option.textContent = data.name;
+                option.dataset.color = data.color;
+                realSelect.appendChild(option);
+                selectCategory(data);
+                quickForm.reset();
+                if (quickModalEl && window.bootstrap) {
+                    window.bootstrap.Modal.getOrCreateInstance(quickModalEl).hide();
+                }
+            } else {
+                quickErrors.textContent = (data.errors || [{{ 'An error occurred.'|trans|json_encode|raw }}]).join(' ');
+                quickErrors.classList.remove('d-none');
+            }
+        });
+    }
+})();
+</script>

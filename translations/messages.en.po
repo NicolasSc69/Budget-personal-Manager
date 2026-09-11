@@ -1,0 +1,1115 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "%count% recurring transaction(s) duplicated to next month."
+msgstr "%count% recurring transaction(s) duplicated to next month."
+
+msgid "%count% transaction(s) deleted."
+msgstr "%count% transaction(s) deleted."
+
+msgid "%created% tag(s) created, %existing% already existed and were reused."
+msgstr "%created% tag(s) created, %existing% already existed and were reused."
+
+msgid "(automatically generated from a recurring transaction)"
+msgstr "(automatically generated from a recurring transaction)"
+
+msgid "+ Create person \"%query%\""
+msgstr "+ Create person \"%query%\""
+
+msgid "+ Create type \"%query%\""
+msgstr "+ Create type \"%query%\""
+
+msgid "1 column: the tag is created without a parent."
+msgstr "1 column: the tag is created without a parent."
+
+msgid "2 columns: the 2nd column lists the parent tag(s), separated by a pipe (|). One tag is created per parent, all sharing the same name."
+msgstr "2 columns: the 2nd column lists the parent tag(s), separated by a pipe (|). One tag is created per parent, all sharing the same name."
+
+msgid "A parent tag that does not already exist is created automatically, without a parent of its own."
+msgstr "A parent tag that does not already exist is created automatically, without a parent of its own."
+
+msgid "A tag that already exists (same name and same parent) is reused, not duplicated."
+msgstr "A tag that already exists (same name and same parent) is reused, not duplicated."
+
+msgid "A tag with this name, color and parent tag already exists."
+msgstr "A tag with this name, color and parent tag already exists."
+
+msgid "Account"
+msgstr "Account"
+
+msgid "Account balance before the first recorded transaction. Leave empty to start from 0."
+msgstr "Account balance before the first recorded transaction. Leave empty to start from 0."
+
+msgid "Account details"
+msgstr "Account details"
+
+msgid "Account type"
+msgstr "Account type"
+
+msgid "Account type name"
+msgstr "Account type name"
+
+msgid "Account types"
+msgstr "Account types"
+
+msgid "Accounts"
+msgstr "Accounts"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Actual balance"
+msgstr "Actual balance"
+
+msgid "Add"
+msgstr "Add"
+
+msgid "Add a language"
+msgstr "Add a language"
+
+msgid "Added to the upcoming balance to compute the projected balance."
+msgstr "Added to the upcoming balance to compute the projected balance."
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Administration"
+msgstr "Administration"
+
+msgid "All"
+msgstr "All"
+
+msgid "All accounts"
+msgstr "All accounts"
+
+msgid "All tests passed."
+msgstr "All tests passed."
+
+msgid "Always a positive amount: the type above determines whether it's an expense or income."
+msgstr "Always a positive amount: the type above determines whether it's an expense or income."
+
+msgid "Amount"
+msgstr "Amount"
+
+msgid "Amount (%currency%)"
+msgstr "Amount (%currency%)"
+
+msgid "An error occurred."
+msgstr "An error occurred."
+
+msgid "Assertions"
+msgstr "Assertions"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Automatic (follow device preference)"
+msgstr "Automatic (follow device preference)"
+
+msgid "Automatic backup"
+msgstr "Automatic backup"
+
+msgid "Automatic backup has been disabled."
+msgstr "Automatic backup has been disabled."
+
+msgid "Automatic backup is now enabled for this directory."
+msgstr "Automatic backup is now enabled for this directory."
+
+msgid "Automatically generated from a recurring transaction"
+msgstr "Automatically generated from a recurring transaction"
+
+msgid "Automatically generates the next transactions on their due date."
+msgstr "Automatically generates the next transactions on their due date."
+
+msgid "Average interest earned / month"
+msgstr "Average interest earned / month"
+
+msgid "Average salary (%currency%)"
+msgstr "Average salary (%currency%)"
+
+msgid "Back"
+msgstr "Back"
+
+msgid "Back up now"
+msgstr "Back up now"
+
+msgid "Backup"
+msgstr "Backup"
+
+msgid "Backup directory (absolute path)"
+msgstr "Backup directory (absolute path)"
+
+msgid "Backup directory \"%directory%\" not found or not writable."
+msgstr "Backup directory \"%directory%\" not found or not writable."
+
+msgid "Backup failed: %error%"
+msgstr "Backup failed: %error%"
+
+msgid "Backup file not found."
+msgstr "Backup file not found."
+
+msgid "Balance"
+msgstr "Balance"
+
+msgid "Balance trend from January 1 to December 31, %year%"
+msgstr "Balance trend from January 1 to December 31, %year%"
+
+msgid "Browse"
+msgstr "Browse"
+
+msgid "Budget management"
+msgstr "Budget management"
+
+msgid "CSV file"
+msgstr "CSV file"
+
+msgid "Cache"
+msgstr "Cache"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Cannot delete a person associated with an account."
+msgstr "Cannot delete a person associated with an account."
+
+msgid "Cannot delete a tag that has transactions."
+msgstr "Cannot delete a tag that has transactions."
+
+msgid "Cannot delete a tag that has sub-tags."
+msgstr "Cannot delete a tag that has sub-tags."
+
+msgid "Cannot delete an account that contains transactions."
+msgstr "Cannot delete an account that contains transactions."
+
+msgid "Cannot delete an account type used by an account."
+msgstr "Cannot delete an account type used by an account."
+
+msgid "Cannot delete: accounts use this person"
+msgstr "Cannot delete: accounts use this person"
+
+msgid "Cannot delete: accounts use this type"
+msgstr "Cannot delete: accounts use this type"
+
+msgid "Cannot delete: transactions are attached to this account"
+msgstr "Cannot delete: transactions are attached to this account"
+
+msgid "Cannot delete: transactions are attached to this tag"
+msgstr "Cannot delete: transactions are attached to this tag"
+
+msgid "Check all / uncheck all"
+msgstr "Check all / uncheck all"
+
+msgid "Cheque"
+msgstr "Cheque"
+
+msgid "Cheque number"
+msgstr "Cheque number"
+
+msgid "Choose a directory"
+msgstr "Choose a directory"
+
+msgid "Choose a language…"
+msgstr "Choose a language…"
+
+msgid "Choose a tag"
+msgstr "Choose a tag"
+
+msgid "Choose a type."
+msgstr "Choose a type."
+
+msgid "Choose an account"
+msgstr "Choose an account"
+
+msgid "Choose an account type"
+msgstr "Choose an account type"
+
+msgid "Choose this folder"
+msgstr "Choose this folder"
+
+msgid "Clear cache"
+msgstr "Clear cache"
+
+msgid "Clears the application cache (Twig, configuration, routes...). Useful after an update or in case of incorrect display."
+msgstr "Clears the application cache (Twig, configuration, routes...). Useful after an update or in case of incorrect display."
+
+msgid "Click on a tag to see its matching transactions."
+msgstr "Click on a tag to see its matching transactions."
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Color"
+msgstr "Color"
+
+msgid "Create"
+msgstr "Create"
+
+msgid "Create an account"
+msgstr "Create an account"
+
+msgid "Create tag \"%tag%\""
+msgstr "Create tag \"%tag%\""
+
+msgid "Currency"
+msgstr "Currency"
+
+msgid "Current balance as of %date%"
+msgstr "Current balance as of %date%"
+
+msgid "Current folder:"
+msgstr "Current folder:"
+
+msgid "Current month"
+msgstr "Current month"
+
+msgid "Dark"
+msgstr "Dark"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Database"
+msgstr "Database"
+
+msgid "Database file not found."
+msgstr "Database file not found."
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Dates"
+msgstr "Dates"
+
+msgid "Decrease text size"
+msgstr "Decrease text size"
+
+msgid "Default"
+msgstr "Default"
+
+msgid "Default site language"
+msgstr "Default site language"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Delete %count% selected transaction(s)?"
+msgstr "Delete %count% selected transaction(s)?"
+
+msgid "Delete selected item(s)"
+msgstr "Delete selected item(s)"
+
+msgid "Delete this account type?"
+msgstr "Delete this account type?"
+
+msgid "Delete this account?"
+msgstr "Delete this account?"
+
+msgid "Delete this person?"
+msgstr "Delete this person?"
+
+msgid "Delete this tag?"
+msgstr "Delete this tag?"
+
+msgid "Delete this transaction?"
+msgstr "Delete this transaction?"
+
+msgid "Destination account"
+msgstr "Destination account"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Directory \"%directory%\" is not writable."
+msgstr "Directory \"%directory%\" is not writable."
+
+msgid "Display"
+msgstr "Display"
+
+msgid "Displayed currency"
+msgstr "Displayed currency"
+
+msgid "Do not take into account for the projected balance calculation"
+msgstr "Do not take into account for the projected balance calculation"
+
+msgid "Download backup"
+msgstr "Download backup"
+
+msgid "Download database"
+msgstr "Download database"
+
+msgid "Downloads a full copy of the database (SQLite file): accounts, tags, account types and transactions."
+msgstr "Downloads a full copy of the database (SQLite file): accounts, tags, account types and transactions."
+
+msgid "Duplicate"
+msgstr "Duplicate"
+
+msgid "Duplicate selection to next month"
+msgstr "Duplicate selection to next month"
+
+msgid "Duplicate this transaction"
+msgstr "Duplicate this transaction"
+
+msgid "Duplicate transaction"
+msgstr "Duplicate transaction"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "E.g.: Joint account, Savings account…"
+msgstr "E.g.: Joint account, Savings account…"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Edit account"
+msgstr "Edit account"
+
+msgid "Edit account type"
+msgstr "Edit account type"
+
+msgid "Edit person"
+msgstr "Edit person"
+
+msgid "Edit tag"
+msgstr "Edit tag"
+
+msgid "Edit transaction"
+msgstr "Edit transaction"
+
+msgid "Edit translations"
+msgstr "Edit translations"
+
+msgid "Editing language"
+msgstr "Editing language"
+
+msgid "English (source)"
+msgstr "English (source)"
+
+msgid "English is the source language of this application. Choose the default language used across the whole site, and override any text below by editing its translation."
+msgstr "English is the source language of this application. Choose the default language used across the whole site, and override any text below by editing its translation."
+
+msgid "English is the source language: text is authored directly in the application templates. Pick another language above to add or edit its overrides."
+msgstr "English is the source language: text is authored directly in the application templates. Pick another language above to add or edit its overrides."
+
+msgid "Environment"
+msgstr "Environment"
+
+msgid "Estimate based on the average salary between the 1st and the last day of the month."
+msgstr "Estimate based on the average salary between the 1st and the last day of the month."
+
+msgid "Estimate based on the current balance and the declared rate (%rate% %), without compounding."
+msgstr "Estimate based on the current balance and the declared rate (%rate% %), without compounding."
+
+msgid "Every 3 months"
+msgstr "Every 3 months"
+
+msgid "Every 6 months"
+msgstr "Every 6 months"
+
+msgid "Every month"
+msgstr "Every month"
+
+msgid "Every newly created tag is assigned an automatic color different from the colors already in use."
+msgstr "Every newly created tag is assigned an automatic color different from the colors already in use."
+
+msgid "Every year"
+msgstr "Every year"
+
+msgid "Example CSV"
+msgstr "Example CSV"
+
+msgid "Excluded from forecast"
+msgstr "Excluded from forecast"
+
+msgid "Expense"
+msgstr "Expense"
+
+msgid "Expenses"
+msgstr "Expenses"
+
+msgid "Export"
+msgstr "Export"
+
+msgid "Export PDF"
+msgstr "Export PDF"
+
+msgid "Failed"
+msgstr "Failed"
+
+msgid "Failures / errors"
+msgstr "Failures / errors"
+
+msgid "File size"
+msgstr "File size"
+
+msgid "Files"
+msgstr "Files"
+
+msgid "Filter"
+msgstr "Filter"
+
+msgid "Force a database backup"
+msgstr "Force a database backup"
+
+msgid "From"
+msgstr "From"
+
+msgid "Generated on %date%"
+msgstr "Generated on %date%"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "How it works"
+msgstr "How it works"
+
+msgid "If a directory is provided, a copy of the database is automatically saved there on every change (creation, edit, deletion). Leave the field empty to disable automatic backup."
+msgstr "If a directory is provided, a copy of the database is automatically saved there on every change (creation, edit, deletion). Leave the field empty to disable automatic backup."
+
+msgid "If set, automatically creates the reverse transaction (expense ↔ income) in this account, to represent a transfer between accounts."
+msgstr "If set, automatically creates the reverse transaction (expense ↔ income) in this account, to represent a transfer between accounts."
+
+msgid "Import"
+msgstr "Import"
+
+msgid "Import and replace"
+msgstr "Import and replace"
+
+msgid "Import tags"
+msgstr "Import tags"
+
+msgid "Importing this file will replace ALL current data. Continue?"
+msgstr "Importing this file will replace ALL current data. Continue?"
+
+msgid "Income"
+msgstr "Income"
+
+msgid "Income / Expenses (%year%)"
+msgstr "Income / Expenses (%year%)"
+
+msgid "Income / Expenses by month (%year%)"
+msgstr "Income / Expenses by month (%year%)"
+
+msgid "Increase text size"
+msgstr "Increase text size"
+
+msgid "Initial balance"
+msgstr "Initial balance"
+
+msgid "Initial balance (%currency%)"
+msgstr "Initial balance (%currency%)"
+
+msgid "Invalid form."
+msgstr "Invalid form."
+
+msgid "Invalid language code."
+msgstr "Invalid language code."
+
+msgid "Invalid security token, please try again."
+msgstr "Invalid security token, please try again."
+
+msgid "Invalid theme."
+msgstr "Invalid theme."
+
+msgid "Items per page (transactions / tags / accounts lists)"
+msgstr "Items per page (transactions / tags / accounts lists)"
+
+msgid "Label"
+msgstr "Label"
+
+msgid "Language"
+msgstr "Language"
+
+msgid "Language added."
+msgstr "Language added."
+
+msgid "Language removed."
+msgstr "Language removed."
+
+msgid "Languages"
+msgstr "Languages"
+
+msgid "Last modified"
+msgstr "Last modified"
+
+msgid "Last occurrence date"
+msgstr "Last occurrence date"
+
+msgid "Last run: %date%"
+msgstr "Last run: %date%"
+
+msgid "Latest transactions"
+msgstr "Latest transactions"
+
+msgid "Leave empty for a recurrence without an end. Used to stop proposing this transaction in the recurring transactions list after this date."
+msgstr "Leave empty for a recurrence without an end. Used to stop proposing this transaction in the recurring transactions list after this date."
+
+msgid "Light"
+msgstr "Light"
+
+msgid "Line %line%: invalid format, expected 1 or 2 columns separated by a comma."
+msgstr "Line %line%: invalid format, expected 1 or 2 columns separated by a comma."
+
+msgid "Manage account types"
+msgstr "Manage account types"
+
+msgid "Manage people"
+msgstr "Manage people"
+
+msgid "Max amount"
+msgstr "Max amount"
+
+msgid "Maximum amount (%currency%)"
+msgstr "Maximum amount (%currency%)"
+
+msgid "Min amount"
+msgstr "Min amount"
+
+msgid "Monthly recurring transactions for which next month's occurrence does not exist yet."
+msgstr "Monthly recurring transactions for which next month's occurrence does not exist yet."
+
+msgid "Name"
+msgstr "Name"
+
+msgid "New"
+msgstr "New"
+
+msgid "New account"
+msgstr "New account"
+
+msgid "New account type"
+msgstr "New account type"
+
+msgid "New person"
+msgstr "New person"
+
+msgid "New tag"
+msgstr "New tag"
+
+msgid "New transaction"
+msgstr "New transaction"
+
+msgid "New type"
+msgstr "New type"
+
+msgid "Next"
+msgstr "Next"
+
+msgid "No"
+msgstr "No"
+
+msgid "No account type yet"
+msgstr "No account type yet"
+
+msgid "No account yet"
+msgstr "No account yet"
+
+msgid "No account yet."
+msgstr "No account yet."
+
+msgid "No backup directory is configured."
+msgstr "No backup directory is configured."
+
+msgid "No backup yet."
+msgstr "No backup yet."
+
+msgid "No expense recorded for this period."
+msgstr "No expense recorded for this period."
+
+msgid "No income recorded for this period."
+msgstr "No income recorded for this period."
+
+msgid "No person"
+msgstr "No person"
+
+msgid "No person yet"
+msgstr "No person yet"
+
+msgid "No recurring transaction to duplicate at the moment."
+msgstr "No recurring transaction to duplicate at the moment."
+
+msgid "No subfolder"
+msgstr "No subfolder"
+
+msgid "No tags yet"
+msgstr "No tags yet"
+
+msgid "No test report yet. Click \"Run tests\" to generate one."
+msgstr "No test report yet. Click \"Run tests\" to generate one."
+
+msgid "No transaction at the moment"
+msgstr "No transaction at the moment"
+
+msgid "No transaction selected."
+msgstr "No transaction selected."
+
+msgid "No transaction yet"
+msgstr "No transaction yet"
+
+msgid "No."
+msgstr "No."
+
+msgid "None"
+msgstr "None"
+
+msgid "None (no transfer)"
+msgstr "None (no transfer)"
+
+msgid "None (root tag)"
+msgstr "None (root tag)"
+
+msgid "Only .csv files are accepted."
+msgstr "Only .csv files are accepted."
+
+msgid "Other (enter ISO code)…"
+msgstr "Other (enter ISO code)…"
+
+msgid "PHPUnit is not installed on this server (dev dependencies are missing from vendor/). Run \"composer install\" without --no-dev."
+msgstr "PHPUnit is not installed on this server (dev dependencies are missing from vendor/). Run \"composer install\" without --no-dev."
+
+msgid "Paid by cheque"
+msgstr "Paid by cheque"
+
+msgid "Parent folder"
+msgstr "Parent folder"
+
+msgid "Parent tag"
+msgstr "Parent tag"
+
+msgid "Passed"
+msgstr "Passed"
+
+msgid "People"
+msgstr "People"
+
+msgid "Person"
+msgstr "Person"
+
+msgid "Person name"
+msgstr "Person name"
+
+msgid "Please provide the cheque number."
+msgstr "Please provide the cheque number."
+
+msgid "Please select a valid CSV file."
+msgstr "Please select a valid CSV file."
+
+msgid "Please select a valid file (it might be too large for the server)."
+msgstr "Please select a valid file (it might be too large for the server)."
+
+msgid "Previous"
+msgstr "Previous"
+
+msgid "Processed"
+msgstr "Processed"
+
+msgid "Progress toward the goal"
+msgstr "Progress toward the goal"
+
+msgid "Projected balance"
+msgstr "Projected balance"
+
+msgid "Projected balance (with interest)"
+msgstr "Projected balance (with interest)"
+
+msgid "Projected interest by end of %year%"
+msgstr "Projected interest by end of %year%"
+
+msgid "Randomize colors"
+msgstr "Randomize colors"
+
+msgid "Randomly shuffle the colors of all tags?"
+msgstr "Randomly shuffle the colors of all tags?"
+
+msgid "Rate (%)"
+msgstr "Rate (%)"
+
+msgid "Rate:"
+msgstr "Rate:"
+
+msgid "Raw output of the last attempt"
+msgstr "Raw output of the last attempt"
+
+msgid "Recurrence"
+msgstr "Recurrence"
+
+msgid "Recurrence end date"
+msgstr "Recurrence end date"
+
+msgid "Recurring template: %recurrence%"
+msgstr "Recurring template: %recurrence%"
+
+msgid "Recurring transactions to duplicate"
+msgstr "Recurring transactions to duplicate"
+
+msgid "Recurring transactions to duplicate (%count%)"
+msgstr "Recurring transactions to duplicate (%count%)"
+
+msgid "Remove this language?"
+msgstr "Remove this language?"
+
+msgid "Replaces"
+msgstr "Replaces"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Reset text size"
+msgstr "Reset text size"
+
+msgid "Run tests"
+msgstr "Run tests"
+
+msgid "Run the test suite now?"
+msgstr "Run the test suite now?"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Save translations"
+msgstr "Save translations"
+
+msgid "Savings"
+msgstr "Savings"
+
+msgid "Search a person…"
+msgstr "Search a person…"
+
+msgid "Search a tag…"
+msgstr "Search a tag…"
+
+msgid "Search an account type…"
+msgstr "Search an account type…"
+
+msgid "Search an already used title…"
+msgstr "Search an already used title…"
+
+msgid "Search an existing tag…"
+msgstr "Search an existing tag…"
+
+msgid "Search strings…"
+msgstr "Search strings…"
+
+msgid "Search…"
+msgstr "Search…"
+
+msgid "Select all"
+msgstr "Select all"
+
+msgid "Select this transaction"
+msgstr "Select this transaction"
+
+msgid "Set as default"
+msgstr "Set as default"
+
+msgid "Settings have been updated."
+msgstr "Settings have been updated."
+
+msgid "Shows a progress bar of the balance against this target."
+msgstr "Shows a progress bar of the balance against this target."
+
+msgid "Shows the interest calculation on this account's dashboard."
+msgstr "Shows the interest calculation on this account's dashboard."
+
+msgid "Size"
+msgstr "Size"
+
+msgid "Skipped"
+msgstr "Skipped"
+
+msgid "Some tests failed, see the report below."
+msgstr "Some tests failed, see the report below."
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Sub-tags"
+msgstr "Sub-tags"
+
+msgid "Tag"
+msgstr "Tag"
+
+msgid "Tag colors have been shuffled randomly."
+msgstr "Tag colors have been shuffled randomly."
+
+msgid "Tag detail"
+msgstr "Tag detail"
+
+msgid "Tag name"
+msgstr "Tag name"
+
+msgid "Tags"
+msgstr "Tags"
+
+msgid "Target:"
+msgstr "Target:"
+
+msgid "Test"
+msgstr "Test"
+
+msgid "Tests"
+msgstr "Tests"
+
+msgid "Text size"
+msgstr "Text size"
+
+msgid "The account has been created."
+msgstr "The account has been created."
+
+msgid "The account has been deleted."
+msgstr "The account has been deleted."
+
+msgid "The account has been updated."
+msgstr "The account has been updated."
+
+msgid "The account type has been created."
+msgstr "The account type has been created."
+
+msgid "The account type has been deleted."
+msgstr "The account type has been deleted."
+
+msgid "The account type has been updated."
+msgstr "The account type has been updated."
+
+msgid "The amount cannot be equal to 0."
+msgstr "The amount cannot be equal to 0."
+
+msgid "The amount must be positive."
+msgstr "The amount must be positive."
+
+msgid "The backup directory must be an absolute path (starting with \"/\")."
+msgstr "The backup directory must be an absolute path (starting with \"/\")."
+
+msgid "The cache has been cleared."
+msgstr "The cache has been cleared."
+
+msgid "The color must be in hexadecimal format, e.g.: #FF5733."
+msgstr "The color must be in hexadecimal format, e.g.: #FF5733."
+
+msgid "The currency used throughout the app cannot be reliably detected from the site language alone (e.g. \"English\" could mean USD, GBP or AUD), so it must be confirmed here. Currently displayed as %symbol%, like € for France."
+msgstr "The currency used throughout the app cannot be reliably detected from the site language alone (e.g. \"English\" could mean USD, GBP or AUD), so it must be confirmed here. Currently displayed as %symbol%, like € for France."
+
+msgid "The database backup completed successfully."
+msgstr "The database backup completed successfully."
+
+msgid "The database has been imported successfully. A backup of the previous database was kept next to the file."
+msgstr "The database has been imported successfully. A backup of the previous database was kept next to the file."
+
+msgid "The default site language cannot be removed."
+msgstr "The default site language cannot be removed."
+
+msgid "The default site language has been updated."
+msgstr "The default site language has been updated."
+
+msgid "The destination account must be different from the source account."
+msgstr "The destination account must be different from the source account."
+
+msgid "The displayed currency has been updated."
+msgstr "The displayed currency has been updated."
+
+msgid "The environment marked \"current\" is the one serving this very page, so Symfony immediately rebuilds the part of its cache needed to display the page you land on after clearing — it will never show up empty here. This does not mean clearing failed: check its \"Last modified\" date, it will show the exact time you clicked, proving the previous cache was actually deleted first."
+msgstr "The environment marked \"current\" is the one serving this very page, so Symfony immediately rebuilds the part of its cache needed to display the page you land on after clearing — it will never show up empty here. This does not mean clearing failed: check its \"Last modified\" date, it will show the exact time you clicked, proving the previous cache was actually deleted first."
+
+msgid "The file must be a CSV with comma (,) separated columns. No other format is accepted."
+msgstr "The file must be a CSV with comma (,) separated columns. No other format is accepted."
+
+msgid "The number of items per page must be between 5 and 200."
+msgstr "The number of items per page must be between 5 and 200."
+
+msgid "The parent term = Payee and the child term = Category. E.g.: TRANSFER (parent = Payee) & SALARY (child = Category)."
+msgstr "The parent term = Payee and the child term = Category. E.g.: TRANSFER (parent = Payee) & SALARY (child = Category)."
+
+msgid "The person has been created successfully."
+msgstr "The person has been created successfully."
+
+msgid "The person has been deleted successfully."
+msgstr "The person has been deleted successfully."
+
+msgid "The person has been updated successfully."
+msgstr "The person has been updated successfully."
+
+msgid "The selected file is not a valid SQLite database."
+msgstr "The selected file is not a valid SQLite database."
+
+msgid "The source language cannot be removed."
+msgstr "The source language cannot be removed."
+
+msgid "The tag has been created successfully."
+msgstr "The tag has been created successfully."
+
+msgid "The tag has been deleted successfully."
+msgstr "The tag has been deleted successfully."
+
+msgid "The tag has been updated successfully."
+msgstr "The tag has been updated successfully."
+
+msgid "The test run could not complete: %error%"
+msgstr "The test run could not complete: %error%"
+
+msgid "The transaction has been created."
+msgstr "The transaction has been created."
+
+msgid "The transaction has been deleted."
+msgstr "The transaction has been deleted."
+
+msgid "The transaction has been updated."
+msgstr "The transaction has been updated."
+
+msgid "The transaction title, for example \"RENT\"."
+msgstr "The transaction title, for example \"RENT\"."
+
+msgid "Theme"
+msgstr "Theme"
+
+msgid "This example creates 3 tags without a parent (\"etiquette1\", \"etiquette2\", \"etiquette3\"), plus 2 tags named \"etiquette2.1\": one with \"etiquette1\" as parent, the other with \"etiquette3\" as parent."
+msgstr "This example creates 3 tags without a parent (\"etiquette1\", \"etiquette2\", \"etiquette3\"), plus 2 tags named \"etiquette2.1\": one with \"etiquette1\" as parent, the other with \"etiquette3\" as parent."
+
+msgid "This feature only supports SQLite databases."
+msgstr "This feature only supports SQLite databases."
+
+msgid "This item cannot be deleted because other data still refers to it."
+msgstr "This item cannot be deleted because other data still refers to it."
+
+msgid "This language cannot be edited."
+msgstr "This language cannot be edited."
+
+msgid "This language has already been added."
+msgstr "This language has already been added."
+
+msgid "Title"
+msgstr "Title"
+
+msgid "To"
+msgstr "To"
+
+msgid "Top 10 expenses by tag"
+msgstr "Top 10 expenses by tag"
+
+msgid "Top 10 income by tag"
+msgstr "Top 10 income by tag"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Total across all accounts"
+msgstr "Total across all accounts"
+
+msgid "Total of checked transactions: %amount%"
+msgstr "Total of checked transactions: %amount%"
+
+msgid "Total: %amount%"
+msgstr "Total: %amount%"
+
+msgid "Transaction"
+msgstr "Transaction"
+
+msgid "Transaction detail"
+msgstr "Transaction detail"
+
+msgid "Transaction details"
+msgstr "Transaction details"
+
+msgid "Transaction of %date%"
+msgstr "Transaction of %date%"
+
+msgid "Transactions"
+msgstr "Transactions"
+
+msgid "Transactions tagged with this category (e.g. the salary itself) are left out of the \"Projected balance\" figure, to avoid counting them twice alongside the account's average salary."
+msgstr "Transactions tagged with this category (e.g. the salary itself) are left out of the \"Projected balance\" figure, to avoid counting them twice alongside the account's average salary."
+
+msgid "Translate interface"
+msgstr "Translate interface"
+
+msgid "Translated"
+msgstr "Translated"
+
+msgid "Translations have been saved."
+msgstr "Translations have been saved."
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Unable to create directory \"%directory%\" (%reason%)."
+msgstr "Unable to create directory \"%directory%\" (%reason%)."
+
+msgid "Unable to load content."
+msgstr "Unable to load content."
+
+msgid "Unable to load the form."
+msgstr "Unable to load the form."
+
+msgid "Unable to read the uploaded file."
+msgstr "Unable to read the uploaded file."
+
+msgid "Unable to save: the web server does not have write permission on the translation files."
+msgstr "Unable to save: the web server does not have write permission on the translation files."
+
+msgid "Unit tests"
+msgstr "Unit tests"
+
+msgid "Unknown currency code."
+msgstr "Unknown currency code."
+
+msgid "Unknown language."
+msgstr "Unknown language."
+
+msgid "Upcoming"
+msgstr "Upcoming"
+
+msgid "Upcoming balance"
+msgstr "Upcoming balance"
+
+msgid "Upcoming balance + interest"
+msgstr "Upcoming balance + interest"
+
+msgid "Upcoming only"
+msgstr "Upcoming only"
+
+msgid "Update"
+msgstr "Update"
+
+msgid "View"
+msgstr "View"
+
+msgid "View all transactions"
+msgstr "View all transactions"
+
+msgid "View dashboard"
+msgstr "View dashboard"
+
+msgid "View test report"
+msgstr "View test report"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "all current data"
+msgstr "all current data"
+
+msgid "current"
+msgstr "current"
+
+msgid "e.g. EUR"
+msgstr "e.g. EUR"
+
+msgid "from %start% to %end%"
+msgstr "from %start% to %end%"
+
+msgid "source"
+msgstr "source"
+
+msgid "suggested"
+msgstr "suggested"
+
+msgid "transaction(s) selected"
+msgstr "transaction(s) selected"
+
+msgid "unknown reason"
+msgstr "unknown reason"
+
+msgid "with the contents of a file exported from this application. A backup of the current database is automatically kept next to the file before the import."
+msgstr "with the contents of a file exported from this application. A backup of the current database is automatically kept next to the file before the import."

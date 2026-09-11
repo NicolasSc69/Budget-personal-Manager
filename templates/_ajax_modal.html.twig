@@ -1,0 +1,185 @@
+<div class="modal fade" id="ajaxModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ajaxModalTitle">{{ 'Details'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
+            </div>
+            <div class="modal-body" id="ajaxModalBody">
+                <div class="text-center py-5"><span class="spinner-border" role="status"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const modalEl = document.getElementById('ajaxModal');
+    const modalBody = document.getElementById('ajaxModalBody');
+    const modalTitle = document.getElementById('ajaxModalTitle');
+
+    if (!modalEl || !modalBody || !modalTitle) {
+        return;
+    }
+
+    const DEFAULT_MODAL_TITLE = {{ 'Details'|trans|json_encode|raw }};
+    const UNABLE_TO_LOAD_HTML = '<div class="alert alert-danger">' + {{ 'Unable to load content.'|trans|json_encode|raw }} + '</div>';
+    const LOADING_HTML = '<div class="text-center py-5"><span class="spinner-border" role="status"></span></div>';
+
+    function modalInstance() {
+        return bootstrap.Modal.getOrCreateInstance(modalEl);
+    }
+
+    function executeScripts(container) {
+        container.querySelectorAll('script').forEach((oldScript) => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach((attr) => newScript.setAttribute(attr.name, attr.value));
+            newScript.textContent = oldScript.textContent;
+            oldScript.replaceWith(newScript);
+        });
+    }
+
+    function wireCancelLinks() {
+        modalBody.querySelectorAll('[data-role="cancel"]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                modalInstance().hide();
+            });
+        });
+    }
+
+    let relocatedModals = [];
+    let suppressHiddenCleanup = false;
+
+    function cleanupRelocatedModals() {
+        relocatedModals.forEach((nestedModal) => {
+            bootstrap.Modal.getInstance(nestedModal)?.dispose();
+            nestedModal.remove();
+        });
+        relocatedModals = [];
+    }
+
+    // Bootstrap's modal focus trap does not support two modals being shown at the same time
+    // (it throws and breaks the second modal). Since nested "quick create" modals need to open
+    // on top of this ajax modal, clicks that would open one are intercepted before Bootstrap's
+    // own handler runs: the ajax modal is fully hidden first (transition completed, focus trap
+    // deactivated), only then is the nested modal shown — and symmetrically restored once it
+    // closes — so the two are never simultaneously active.
+    function relocateNestedModals() {
+        modalBody.querySelectorAll('.modal').forEach((nestedModal) => {
+            document.body.appendChild(nestedModal);
+            relocatedModals.push(nestedModal);
+
+            nestedModal.addEventListener('hidden.bs.modal', () => {
+                if (relocatedModals.includes(nestedModal)) {
+                    suppressHiddenCleanup = true;
+                    modalInstance().show();
+                }
+            });
+        });
+    }
+
+    // Runs in the capture phase so it fires before Bootstrap's own delegated data-api
+    // click listener, letting it stop the default (immediate) show of the nested modal.
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-bs-toggle="modal"]');
+        if (!trigger || !modalEl.classList.contains('show')) {
+            return;
+        }
+
+        const targetSelector = trigger.getAttribute('data-bs-target') || trigger.getAttribute('href');
+        const target = targetSelector ? document.querySelector(targetSelector) : null;
+
+        if (!target || !relocatedModals.includes(target)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        modalEl.addEventListener('hidden.bs.modal', function onHidden() {
+            modalEl.removeEventListener('hidden.bs.modal', onHidden);
+            bootstrap.Modal.getOrCreateInstance(target).show();
+        }, { once: true });
+
+        suppressHiddenCleanup = true;
+        modalInstance().hide();
+    }, true);
+
+    function renderIntoModal(html) {
+        cleanupRelocatedModals();
+        modalBody.innerHTML = html;
+        executeScripts(modalBody);
+        relocateNestedModals();
+        wireCancelLinks();
+    }
+
+    function buildLoadUrl(rawUrl) {
+        const url = new URL(rawUrl, window.location.origin);
+        url.searchParams.set('redirect_to', window.location.pathname + window.location.search);
+        return url.toString();
+    }
+
+    async function openModal(url, title) {
+        cleanupRelocatedModals();
+        modalTitle.textContent = title;
+        modalBody.innerHTML = LOADING_HTML;
+        modalInstance().show();
+
+        try {
+            const response = await fetch(buildLoadUrl(url), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            renderIntoModal(await response.text());
+        } catch (error) {
+            modalBody.innerHTML = UNABLE_TO_LOAD_HTML;
+        }
+    }
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-ajax-modal]');
+        if (!trigger) {
+            return;
+        }
+        event.preventDefault();
+        openModal(trigger.href, trigger.dataset.title || DEFAULT_MODAL_TITLE);
+    });
+
+    modalBody.addEventListener('submit', async (event) => {
+        const form = event.target.closest('form');
+        if (!form || form.hasAttribute('data-native-submit')) {
+            return;
+        }
+        event.preventDefault();
+
+        const response = await fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+
+        if (response.ok && contentType.includes('application/json')) {
+            const data = await response.json();
+            modalInstance().hide();
+
+            if (data.redirect && data.redirect !== window.location.pathname + window.location.search) {
+                window.location = data.redirect;
+            } else {
+                window.location.reload();
+            }
+            return;
+        }
+
+        renderIntoModal(await response.text());
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        if (suppressHiddenCleanup) {
+            suppressHiddenCleanup = false;
+            return;
+        }
+        cleanupRelocatedModals();
+        modalBody.innerHTML = LOADING_HTML;
+    });
+})();
+</script>

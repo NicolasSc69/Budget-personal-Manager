@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Import tags'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">{{ 'Import tags'|trans }}</h1>
+        <a href="{{ path('app_category_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h6">{{ 'How it works'|trans }}</h2>
+            <p class="text-muted small mb-2">
+                {{ 'The file must be a CSV with comma (,) separated columns. No other format is accepted.'|trans }}
+            </p>
+            <ul class="text-muted small mb-3">
+                <li>{{ '1 column: the tag is created without a parent.'|trans }}</li>
+                <li>{{ '2 columns: the 2nd column lists the parent tag(s), separated by a pipe (|). One tag is created per parent, all sharing the same name.'|trans }}</li>
+                <li>{{ 'A parent tag that does not already exist is created automatically, without a parent of its own.'|trans }}</li>
+                <li>{{ 'A tag that already exists (same name and same parent) is reused, not duplicated.'|trans }}</li>
+                <li>{{ 'Every newly created tag is assigned an automatic color different from the colors already in use.'|trans }}</li>
+            </ul>
+
+            <h2 class="h6">{{ 'Example CSV'|trans }}</h2>
+            <pre class="bg-body-secondary p-3 rounded small mb-1" style="white-space: pre-wrap;">etiquette1,
+etiquette2,
+etiquette3,
+etiquette2.1,etiquette1|etiquette3</pre>
+            <p class="text-muted small mb-0">
+                {{ 'This example creates 3 tags without a parent ("etiquette1", "etiquette2", "etiquette3"), plus 2 tags named "etiquette2.1": one with "etiquette1" as parent, the other with "etiquette3" as parent.'|trans }}
+            </p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" action="{{ path('app_category_import') }}" enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="{{ csrf_token('category_import') }}">
+                <div class="mb-3">
+                    <label class="form-label" for="csv_file">{{ 'CSV file'|trans }}</label>
+                    <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> {{ 'Import'|trans }}
+                </button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

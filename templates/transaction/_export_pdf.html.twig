@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #212529; }
+        h1 { font-size: 16px; margin: 0 0 4px 0; }
+        .subtitle { color: #6c757d; margin: 0 0 10px 0; font-size: 10px; }
+        .filters { margin: 0 0 14px 0; font-size: 9px; color: #495057; }
+        .filters span { display: inline-block; margin-right: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background-color: #343a40; color: #fff; text-align: left; padding: 5px 6px; font-size: 9px; }
+        tbody td { padding: 4px 6px; border-bottom: 1px solid #dee2e6; font-size: 9px; }
+        tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .text-end { text-align: right; }
+        .amount-negative { color: #dc3545; }
+        .amount-positive { color: #198754; }
+        tfoot td { padding: 6px; font-weight: bold; border-top: 2px solid #343a40; }
+        .balances { width: 100%; margin: 0 0 14px 0; border-collapse: collapse; }
+        .balances td { padding: 0 24px 0 0; vertical-align: top; }
+        .balances .label { color: #6c757d; font-size: 9px; margin: 0 0 2px 0; }
+        .balances .value { font-size: 13px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>{{ 'Transactions'|trans }}{% if filterAccount %} - {{ filterAccount.label }}{% if filterAccount.person %} ({{ filterAccount.person.name }}){% endif %}{% endif %}</h1>
+    <p class="subtitle">{{ 'Generated on %date%'|trans({'%date%': generatedAt|date('d/m/Y H:i')}) }}</p>
+
+    <p class="filters">
+        {% if filterAccount %}<span>{{ 'Account'|trans }}: {{ filterAccount.label }}{% if filterAccount.person %} ({{ filterAccount.person.name }}){% endif %}</span>{% endif %}
+        {% if filterCategory %}<span>{{ 'Tag'|trans }}: {{ filterCategory.fullName }}</span>{% endif %}
+        {% if filterDateFrom %}<span>{{ 'From'|trans }}: {{ filterDateFrom }}</span>{% endif %}
+        {% if filterDateTo %}<span>{{ 'To'|trans }}: {{ filterDateTo }}</span>{% endif %}
+        {% if filterAmountMin %}<span>{{ 'Min amount'|trans }}: {{ filterAmountMin }}</span>{% endif %}
+        {% if filterAmountMax %}<span>{{ 'Max amount'|trans }}: {{ filterAmountMax }}</span>{% endif %}
+        {% if filterSearch %}<span>{{ 'Title'|trans }}: {{ filterSearch }}</span>{% endif %}
+        {% if filterUpcomingOnly %}<span>{{ 'Upcoming only'|trans }}</span>{% endif %}
+        {% if filterCurrentMonthOnly %}<span>{{ 'Current month'|trans }}</span>{% endif %}
+    </p>
+
+    <table class="balances">
+        <tr>
+            <td>
+                <p class="label">{{ 'Current balance as of %date%'|trans({'%date%': balanceDate}) }}</p>
+                <p class="value {{ currentBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ currentBalance|money }}</p>
+            </td>
+            <td>
+                <p class="label">{{ 'Upcoming balance'|trans }}</p>
+                <p class="value {{ upcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ upcomingBalance|money }}</p>
+            </td>
+            {% if filterAccount and not filterAccount.isSavings %}
+                <td>
+                    <p class="label">{{ 'Projected balance'|trans }}</p>
+                    <p class="value {{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ forecastBalance|money }}</p>
+                </td>
+            {% endif %}
+        </tr>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>{{ 'Tag'|trans }}</th>
+                <th>{{ 'Title'|trans }}</th>
+                <th>{{ 'Date'|trans }}</th>
+                <th>{{ 'Account'|trans }}</th>
+                <th class="text-end">{{ 'Amount'|trans }}</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for transaction in transactions %}
+            <tr>
+                <td>{{ transaction.category.fullName }}</td>
+                <td>{{ transaction.title|default('') != '' ? transaction.title : '—' }}</td>
+                <td>{{ transaction.date ? transaction.date|date('d/m/Y') : '' }}</td>
+                <td>{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</td>
+                <td class="text-end {{ transaction.amount < 0 ? 'amount-negative' : 'amount-positive' }}">{{ transaction.amount|money }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: #6c757d; padding: 10px;">{{ 'No transaction at the moment'|trans }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" class="text-end">{{ 'Total'|trans }}</td>
+                <td class="text-end {{ totalAmount < 0 ? 'amount-negative' : 'amount-positive' }}">{{ totalAmount|money }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>

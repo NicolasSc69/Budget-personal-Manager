@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Transaction of %date%'|trans({'%date%': transaction.date|date('d/m/Y')}) }}{% endblock %}
+
+{% block body %}
+    <h1 class="h3 mb-3">{{ 'Transaction of %date%'|trans({'%date%': transaction.date|date('d/m/Y')}) }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width: 200px;">{{ 'Title'|trans }}</th>
+                        <td>
+                            {{ transaction.title ?: '—' }}
+                            <span class="badge {{ transaction.upcoming ? 'text-bg-warning' : 'text-bg-secondary' }} ms-2">
+                                {{ (transaction.upcoming ? 'Upcoming' : 'Processed')|trans }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 200px;">{{ 'Date'|trans }}</th>
+                        <td>{{ transaction.date|date('d/m/Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th style="width: 200px;">{{ 'Account'|trans }}</th>
+                        <td>
+                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}">{{ transaction.account.label }}</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Tag'|trans }}</th>
+                        <td>
+                            <span class="badge" style="background-color: {{ transaction.category.color }};">
+                                {{ transaction.category.fullName }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Amount'|trans }}</th>
+                        <td class="{{ transaction.amount < 0 ? 'amount-negative' : 'amount-positive' }}">
+                            {{ transaction.amount|money }}
+                        </td>
+                    </tr>
+                    {% if transaction.cheque %}
+                    <tr>
+                        <th>{{ 'Cheque'|trans }}</th>
+                        <td>{{ 'No.'|trans }} {{ transaction.chequeNumber }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>{{ 'Recurrence'|trans }}</th>
+                        <td>
+                            {{ transaction.recurrence.label|trans }}
+                            {% if transaction.generatedFromRecurrence %}
+                                <span class="text-muted small">{{ '(automatically generated from a recurring transaction)'|trans }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ path('app_transaction_index') }}" class="btn btn-outline-secondary">{{ 'Back'|trans }}</a>
+        <a href="{{ path('app_transaction_edit', {'id': transaction.id}) }}" class="btn btn-primary" data-transaction-modal data-title="{{ 'Edit transaction'|trans }}">{{ 'Edit'|trans }}</a>
+        {{ include('transaction/_delete_form.html.twig') }}
+    </div>
+{% endblock %}

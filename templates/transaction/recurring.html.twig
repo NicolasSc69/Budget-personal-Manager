@@ -1,0 +1,268 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Recurring transactions to duplicate'|trans }}{% endblock %}
+
+{% block body %}
+    <!-- SENTINEL-TEST-1789057970 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            {{ 'Recurring transactions to duplicate'|trans }}
+            {% if filterAccount %}
+                <small class="text-muted">· {{ filterAccount.label }}</small>
+            {% endif %}
+        </h1>
+        <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+        </a>
+    </div>
+
+    <p class="text-muted small">
+        {{ 'Monthly recurring transactions for which next month\'s occurrence does not exist yet.'|trans }}
+    </p>
+
+    <style>
+        .recurring-title-input {
+            border: none;
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
+        }
+        .recurring-title-input:not([readonly]) {
+            border-bottom: 1px solid var(--bs-border-color);
+            background: var(--bs-body-bg);
+            padding: 0 .25rem;
+        }
+        .recurring-title-edit,
+        .recurring-category-edit {
+            opacity: .6;
+        }
+        .recurring-title-edit:hover,
+        .recurring-title-edit:focus,
+        .recurring-category-edit:hover,
+        .recurring-category-edit:focus {
+            opacity: 1;
+        }
+        .recurring-category-select {
+            border: none;
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        .recurring-category-select.editing {
+            border-bottom: 1px solid var(--bs-border-color);
+            background: var(--bs-body-bg);
+            padding: 0 .25rem;
+            appearance: auto;
+            -webkit-appearance: auto;
+            cursor: auto;
+        }
+    </style>
+
+    {% if totalCount == 0 %}
+        <div class="card">
+            <div class="card-body text-center text-muted py-4">
+                {{ 'No recurring transaction to duplicate at the moment.'|trans }}
+            </div>
+        </div>
+    {% else %}
+        <form method="post" action="{{ path('app_transaction_recurring_duplicate', filterAccount ? {'account': filterAccount.id} : {}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('duplicate_recurring') }}">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="recurring-check-all">
+                    <label class="form-check-label" for="recurring-check-all">{{ 'Check all / uncheck all'|trans }}</label>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-semibold amount-positive" id="recurring-total-amount-top">
+                        {{ 'Total of checked transactions: %amount%'|trans({'%amount%': '0,00 ' ~ currency_symbol()}) }}
+                    </span>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-copy"></i> {{ 'Duplicate selection to next month'|trans }}
+                    </button>
+                </div>
+            </div>
+
+            {% for categoryName, entries in groups %}
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">{{ categoryName }}</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>{{ 'Title'|trans }}</th>
+                                    <th>{{ 'Last occurrence date'|trans }}</th>
+                                    <th>{{ 'Account'|trans }}</th>
+                                    <th>{{ 'Tag'|trans }}</th>
+                                    <th class="text-end">{{ 'Amount'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for entry in entries %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input recurring-checkbox" name="templates[]" value="{{ entry.template.id }}" data-amount="{{ entry.template.amount }}">
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-1 recurring-title-cell">
+                                            <button type="button" class="btn btn-link btn-sm p-0 text-muted recurring-title-edit" title="{{ 'Edit title'|trans }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <input type="text"
+                                                   class="form-control form-control-sm recurring-title-input"
+                                                   name="titles[{{ entry.template.id }}]"
+                                                   value="{{ entry.template.title }}"
+                                                   placeholder="—"
+                                                   readonly>
+                                        </div>
+                                    </td>
+                                    <td>{{ entry.lastOccurrenceDate|date('d/m/Y') }}</td>
+                                    <td>
+                                        {{ entry.template.account.label }}{% if entry.template.account.person %} ({{ entry.template.account.person.name }}){% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-1 recurring-category-cell">
+                                            <button type="button" class="btn btn-link btn-sm p-0 text-muted recurring-category-edit" title="{{ 'Edit tag'|trans }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <select class="form-select form-select-sm recurring-category-select" name="categories[{{ entry.template.id }}]" tabindex="-1">
+                                                {% for category in categories %}
+                                                    <option value="{{ category.id }}" {{ category.id == entry.template.category.id ? 'selected' }}>
+                                                        {{ category.fullName }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td class="text-end {{ entry.template.amount < 0 ? 'amount-negative' : 'amount-positive' }}">
+                                        {{ entry.template.amount|money }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-end mb-3">
+                <span class="fw-semibold amount-positive" id="recurring-total-amount">
+                    {{ 'Total of checked transactions: %amount%'|trans({'%amount%': '0,00 ' ~ currency_symbol()}) }}
+                </span>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+    (function () {
+        const totalAmountLabel = {{ 'Total of checked transactions: %amount%'|trans|json_encode|raw }};
+        const currencySymbol = {{ currency_symbol()|json_encode|raw }};
+        const recurringCheckAll = document.getElementById('recurring-check-all');
+        const checkboxes = document.querySelectorAll('.recurring-checkbox');
+        const totalEls = [document.getElementById('recurring-total-amount-top'), document.getElementById('recurring-total-amount')];
+
+        function updateTotal() {
+            let total = 0;
+            checkboxes.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    total += parseFloat(checkbox.dataset.amount) || 0;
+                }
+            });
+
+            const text = totalAmountLabel.replace('%amount%', total.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + currencySymbol);
+
+            totalEls.forEach((totalEl) => {
+                if (!totalEl) {
+                    return;
+                }
+
+                totalEl.classList.toggle('amount-negative', total < 0);
+                totalEl.classList.toggle('amount-positive', total >= 0);
+                totalEl.textContent = text;
+            });
+        }
+
+        if (recurringCheckAll) {
+            recurringCheckAll.addEventListener('change', () => {
+                checkboxes.forEach((checkbox) => {
+                    checkbox.checked = recurringCheckAll.checked;
+                });
+                updateTotal();
+            });
+        }
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', updateTotal);
+        });
+
+        updateTotal();
+
+        document.querySelectorAll('.recurring-title-edit').forEach((editButton) => {
+            const input = editButton.closest('.recurring-title-cell').querySelector('.recurring-title-input');
+
+            const enableEdit = () => {
+                input.readOnly = false;
+                input.focus();
+                input.select();
+            };
+
+            editButton.addEventListener('click', enableEdit);
+            input.addEventListener('click', () => {
+                if (input.readOnly) {
+                    enableEdit();
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                input.readOnly = true;
+            });
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    input.blur();
+                } else if (event.key === 'Escape') {
+                    input.blur();
+                }
+            });
+        });
+
+        document.querySelectorAll('.recurring-category-edit').forEach((editButton) => {
+            const select = editButton.closest('.recurring-category-cell').querySelector('.recurring-category-select');
+
+            const enableEdit = () => {
+                select.tabIndex = 0;
+                select.classList.add('editing');
+                select.focus();
+                if (typeof select.showPicker === 'function') {
+                    select.showPicker();
+                }
+            };
+
+            editButton.addEventListener('click', enableEdit);
+
+            select.addEventListener('mousedown', (event) => {
+                if (!select.classList.contains('editing')) {
+                    event.preventDefault();
+                    enableEdit();
+                }
+            });
+
+            select.addEventListener('blur', () => {
+                select.tabIndex = -1;
+                select.classList.remove('editing');
+            });
+
+            select.addEventListener('change', () => {
+                select.blur();
+            });
+        });
+    })();
+    </script>
+{% endblock %}

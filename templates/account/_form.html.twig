@@ -1,0 +1,41 @@
+{{ form_start(form, formAction is defined and formAction ? {'action': formAction} : {}) }}
+    {{ form_row(form.label) }}
+    {{ include('account/_account_type_picker.html.twig', {form: form}) }}
+    {{ include('account/_person_picker.html.twig', {form: form}) }}
+    {{ form_row(form.initialBalance) }}
+    <div id="salary-field" class="{{ form.isSavings.vars.checked ? 'd-none' : '' }}">
+        {{ form_row(form.averageSalary) }}
+    </div>
+    {{ form_row(form.isSavings) }}
+    <div id="savings-fields" class="{{ form.isSavings.vars.checked ? '' : 'd-none' }}">
+        {{ form_row(form.interestRate) }}
+        {{ form_row(form.maxAmount) }}
+    </div>
+    <div class="mt-3">
+        <button class="btn btn-primary">{{ (button_label|default('Save'))|trans }}</button>
+        <a href="{{ path('app_account_index') }}" class="btn btn-outline-secondary" data-role="cancel">{{ 'Cancel'|trans }}</a>
+    </div>
+{{ form_end(form) }}
+
+{{ include('account/_account_type_quick_modal.html.twig', {form: form, accountTypeForm: accountTypeForm}) }}
+{{ include('account/_person_quick_modal.html.twig', {form: form, personForm: personForm}) }}
+
+<script>
+(function () {
+    const checkbox = document.getElementById('{{ form.isSavings.vars.id }}');
+    const fields = document.getElementById('savings-fields');
+    const salaryField = document.getElementById('salary-field');
+
+    if (!checkbox || !fields) {
+        return;
+    }
+
+    checkbox.addEventListener('change', function () {
+        fields.classList.toggle('d-none', !checkbox.checked);
+
+        if (salaryField) {
+            salaryField.classList.toggle('d-none', checkbox.checked);
+        }
+    });
+})();
+</script>
