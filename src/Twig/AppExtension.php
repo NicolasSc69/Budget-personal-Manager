@@ -7,6 +7,7 @@ use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Service\CurrencyResolver;
 use App\Service\DatabaseBackupService;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -18,6 +19,7 @@ class AppExtension extends AbstractExtension
         private readonly DatabaseBackupService $databaseBackupService,
         private readonly AppSettingRepository $appSettingRepository,
         private readonly CurrencyResolver $currencyResolver,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -28,6 +30,7 @@ class AppExtension extends AbstractExtension
             new TwigFunction('backup_configured', [$this->databaseBackupService, 'isConfigured']),
             new TwigFunction('currency_symbol', [$this, 'getCurrencySymbol']),
             new TwigFunction('default_theme', [$this, 'getDefaultTheme']),
+            new TwigFunction('account_nav_message', [$this, 'getAccountNavMessage']),
         ];
     }
 
@@ -59,5 +62,15 @@ class AppExtension extends AbstractExtension
     public function formatMoney(int|float|string|null $amount): string
     {
         return number_format((float) ($amount ?? 0), 2, ',', ' ').' '.$this->getCurrencySymbol();
+    }
+
+    public function getAccountNavMessage(Account $account): string
+    {
+        $label = $account->getLabel();
+        if (null !== $account->getPerson()) {
+            $label .= ' ('.$account->getPerson()->getName().')';
+        }
+
+        return $this->translator->trans('Redirecting to %account%', ['%account%' => $label]);
     }
 }

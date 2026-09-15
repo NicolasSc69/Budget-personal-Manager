@@ -748,6 +748,9 @@ msgstr "Opérations récurrentes à dupliquer"
 msgid "Recurring transactions to duplicate (%count%)"
 msgstr "Opérations récurrentes à dupliquer (%count%)"
 
+msgid "Redirecting to %account%"
+msgstr "Redirection vers %account%"
+
 msgid "Remove this language?"
 msgstr "Supprimer cette langue ?"
 

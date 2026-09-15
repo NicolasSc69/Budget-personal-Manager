@@ -10,7 +10,7 @@
                 <small class="text-muted">· {{ filterAccount.label }}</small>
             {% endif %}
         </h1>
-        <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary">
+        <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
             <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
         </a>
     </div>

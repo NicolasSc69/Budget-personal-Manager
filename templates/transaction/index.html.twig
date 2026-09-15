@@ -23,7 +23,7 @@
             {% endif %}
         </h1>
         <div class="d-flex gap-2">
-            <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary">
+            <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
                 <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
             </a>
             <a href="{{ path('app_transaction_recurring', filterAccount ? {'account': filterAccount.id} : {}) }}" class="btn btn-outline-warning">
@@ -191,7 +191,7 @@
                         <td>{{ transaction.title|default('') != '' ? transaction.title : '—' }}</td>
                         <td>{{ transaction.date ? transaction.date|date('d/m/Y') : '' }}</td>
                         <td>
-                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="text-decoration-none tx-account-link">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
+                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="text-decoration-none tx-account-link" data-account-nav="{{ account_nav_message(transaction.account) }}">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
                         </td>
                         <td>
                             <a href="{{ path('app_transaction_index', queryParams|merge({'category': transaction.category.id})) }}" class="badge text-decoration-none" style="background-color: {{ transaction.category.color }};">

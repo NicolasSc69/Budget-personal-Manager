@@ -35,7 +35,7 @@
                                     {% for entry in accountBalances %}
                                         <tr>
                                             <td>
-                                                <a href="{{ entry.url }}" class="text-decoration-none">
+                                                <a href="{{ entry.url }}" class="text-decoration-none" data-account-nav="{{ account_nav_message(entry.account) }}">
                                                     {{ entry.account.label }}{% if entry.account.person %} ({{ entry.account.person.name }}){% endif %}
                                                 </a>
                                                 {% if entry.pendingRecurringCount > 0 %}
@@ -383,6 +383,19 @@
             };
         }
 
+        function goToAccountUrlOnClick(chart, urls, labels) {
+            const redirectTemplate = {{ 'Redirecting to %account%'|trans({'%account%': '__ACCOUNT__'})|json_encode|raw }};
+            return function (evt) {
+                const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+                if (points.length > 0 && urls[points[0].index]) {
+                    if (window.showAccountNavOverlay && labels[points[0].index]) {
+                        window.showAccountNavOverlay(redirectTemplate.replace('__ACCOUNT__', labels[points[0].index]));
+                    }
+                    window.location = urls[points[0].index];
+                }
+            };
+        }
+
         {% if not currentAccount and accountBalances|length > 0 %}
         const accountsChart = new Chart(document.getElementById('accountsPolarChart'), {
             type: 'doughnut',
@@ -403,7 +416,7 @@
                 },
             },
         });
-        document.getElementById('accountsPolarChart').onclick = goToUrlOnClick(accountsChart, chartData.accountUrls);
+        document.getElementById('accountsPolarChart').onclick = goToAccountUrlOnClick(accountsChart, chartData.accountUrls, chartData.accountLabels);
         {% endif %}
 
         {% if currentAccount %}

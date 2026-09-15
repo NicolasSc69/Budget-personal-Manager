@@ -54,7 +54,7 @@
 
     <div class="mt-3">
         <a href="{{ path('app_account_index') }}" class="btn btn-outline-secondary">{{ 'Back'|trans }}</a>
-        <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" class="btn btn-outline-primary">{{ 'View dashboard'|trans }}</a>
+        <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" class="btn btn-outline-primary" data-account-nav="{{ account_nav_message(account) }}">{{ 'View dashboard'|trans }}</a>
         <a href="{{ path('app_account_edit', {'id': account.id}) }}" class="btn btn-primary">{{ 'Edit'|trans }}</a>
         {{ include('account/_delete_form.html.twig') }}
     </div>

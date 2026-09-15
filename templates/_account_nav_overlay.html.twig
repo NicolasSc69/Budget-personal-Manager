@@ -1,0 +1,44 @@
+<div id="account-nav-overlay" class="d-none position-fixed top-0 start-0 w-100 h-100 flex-column justify-content-center align-items-center bg-body" style="z-index: 2000;">
+    <span class="spinner-border" role="status"></span>
+    <div id="account-nav-overlay-message" class="mt-3 fs-5 text-body"></div>
+</div>
+
+<script>
+(function () {
+    const overlay = document.getElementById('account-nav-overlay');
+    const messageEl = document.getElementById('account-nav-overlay-message');
+
+    if (!overlay || !messageEl) {
+        return;
+    }
+
+    window.showAccountNavOverlay = function (message) {
+        messageEl.textContent = message;
+        overlay.classList.remove('d-none');
+        overlay.classList.add('d-flex');
+    };
+
+    function hideOverlay() {
+        overlay.classList.add('d-none');
+        overlay.classList.remove('d-flex');
+    }
+
+    // bfcache: navigating back/forward (mouse or keyboard) restores the previous
+    // page without re-running scripts from scratch, so the overlay shown right
+    // before leaving would otherwise still be visible on return.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            hideOverlay();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-account-nav]');
+        if (!trigger || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+            return;
+        }
+
+        window.showAccountNavOverlay(trigger.dataset.accountNav);
+    });
+})();
+</script>

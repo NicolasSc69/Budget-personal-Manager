@@ -32,7 +32,7 @@
                 {% for account in accounts %}
                     <tr>
                         <td>
-                            <a href="{{ path('app_dashboard_account', {'id': account.id}) }}">{{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}</a>
+                            <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" data-account-nav="{{ account_nav_message(account) }}">{{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}</a>
                         </td>
                         <td><span class="badge text-bg-secondary">{{ account.type.name }}</span></td>
                         <td>

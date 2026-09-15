@@ -25,7 +25,7 @@
                     <tr>
                         <th style="width: 200px;">{{ 'Account'|trans }}</th>
                         <td>
-                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}">{{ transaction.account.label }}</a>
+                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" data-account-nav="{{ account_nav_message(transaction.account) }}">{{ transaction.account.label }}</a>
                         </td>
                     </tr>
                     <tr>

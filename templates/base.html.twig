@@ -122,7 +122,7 @@
                     <ul class="navbar-nav me-auto">
                         {% if navAccount %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ path('app_dashboard_account', {'id': navAccount.id}) }}">{{ 'Dashboard'|trans }}</a>
+                                <a class="nav-link" href="{{ path('app_dashboard_account', {'id': navAccount.id}) }}" data-account-nav="{{ account_nav_message(navAccount) }}">{{ 'Dashboard'|trans }}</a>
                             </li>
                         {% endif %}
                         <li class="nav-item">
@@ -192,6 +192,7 @@
 
         {{ include('transaction/_form_modal.html.twig') }}
         {{ include('_ajax_modal.html.twig') }}
+        {{ include('_account_nav_overlay.html.twig') }}
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -203,6 +204,11 @@
             });
 
             document.getElementById('account-switcher').addEventListener('change', function () {
+                var selectedOption = this.options[this.selectedIndex];
+                if (window.showAccountNavOverlay && selectedOption.value !== '{{ path('app_dashboard') }}') {
+                    var redirectTemplate = {{ 'Redirecting to %account%'|trans({'%account%': '__ACCOUNT__'})|json_encode|raw }};
+                    window.showAccountNavOverlay(redirectTemplate.replace('__ACCOUNT__', selectedOption.textContent.trim()));
+                }
                 window.location = this.value;
             });
 
