@@ -67,6 +67,13 @@ class RecurringTransactionGenerator
 
             $lastOccurrenceDate = $this->transactionRepository->findLastOccurrenceDate($template);
             $nextDate = $lastOccurrenceDate->modify('+1 month');
+            while ($nextDate < $nextMonthStart) {
+                $nextDate = $nextDate->modify('+1 month');
+            }
+
+            if ($nextDate >= $monthAfterStart) {
+                continue;
+            }
 
             if (null !== $template->getRecurrenceEndDate() && $nextDate > $template->getRecurrenceEndDate()) {
                 continue;
