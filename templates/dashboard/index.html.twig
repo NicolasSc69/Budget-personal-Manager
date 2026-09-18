@@ -154,10 +154,11 @@
                     <div class="col-md-4">
                         <div class="text-muted small">
                             {{ 'Projected balance'|trans }}
-                            <i class="bi bi-info-circle" title="{{ 'Estimate based on the average salary between the 1st and the last day of the month.'|trans }}"></i>
+                            <i class="bi bi-info-circle" title="{{ 'Main figure: current balance + current month total, excluding tags marked Excluded from forecast. In parentheses: estimate based on average salary for the month.'|trans }}"></i>
                         </div>
-                        <div class="fs-3 fw-semibold {{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">
-                            {{ forecastBalance|money }}
+                        <div class="fs-3 fw-semibold {{ forecastCheck < 0 ? 'amount-negative' : 'amount-positive' }}">
+                            {{ forecastCheck|money }}
+                            <span class="fs-6 fw-normal {{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">({{ 'Theoretical'|trans }}: {{ forecastBalance|money }})</span>
                         </div>
                     </div>
                 {% endif %}

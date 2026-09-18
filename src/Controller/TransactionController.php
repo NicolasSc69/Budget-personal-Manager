@@ -61,7 +61,7 @@ final class TransactionController extends AbstractController
         $page = min(max(1, (int) $request->query->get('page', 1)), $totalPages);
 
         $transactions = $transactionRepository->findFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $sort, $direction, $itemsPerPage, ($page - 1) * $itemsPerPage, $upcomingOnly, $currentMonthOnly);
-        $filteredAmountSum = $transactionRepository->sumFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly);
+        $filteredAmountSum = $transactionRepository->sumFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, excludeForecastExcluded: $currentMonthOnly);
 
         $allAccounts = $accountRepository->findAllOrderedByLabel();
 
@@ -73,6 +73,8 @@ final class TransactionController extends AbstractController
             : array_sum(array_map(static fn ($a) => (float) ($a->getAverageSalary() ?? 0), $allAccounts));
         $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true);
         $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
+        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true);
+        $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
         $queryParams = array_filter([
             'account' => $account?->getId(),
@@ -109,6 +111,7 @@ final class TransactionController extends AbstractController
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
             'forecastBalance' => $forecastBalance,
+            'forecastCheck' => $forecastCheck,
             'filteredAmountSum' => $filteredAmountSum,
             'balanceDate' => $forecastService->formatDate($today),
             'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account)),
@@ -134,6 +137,8 @@ final class TransactionController extends AbstractController
             : array_sum(array_map(static fn ($a) => (float) ($a->getAverageSalary() ?? 0), $accountRepository->findAllOrderedByLabel()));
         $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true);
         $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
+        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true);
+        $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
         $transactions = $transactionRepository->findFilteredForExport(
             $filters['account'],
@@ -157,6 +162,7 @@ final class TransactionController extends AbstractController
             $filters['search'],
             $filters['upcomingOnly'],
             $filters['currentMonthOnly'],
+            excludeForecastExcluded: $filters['currentMonthOnly'],
         );
 
         $html = $this->renderView('transaction/_export_pdf.html.twig', [
@@ -175,6 +181,7 @@ final class TransactionController extends AbstractController
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
             'forecastBalance' => $forecastBalance,
+            'forecastCheck' => $forecastCheck,
             'balanceDate' => $forecastService->formatDate($today),
         ]);
 

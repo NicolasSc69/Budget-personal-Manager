@@ -58,6 +58,47 @@ final class TransactionRepositoryTest extends KernelTestCase
         );
     }
 
+    public function testSumFilteredExcludesForecastExcludedCategory(): void
+    {
+        $suffix = uniqid();
+
+        $account = $this->createAccount($suffix);
+        $normalCategory = $this->createCategory('Normal '.$suffix);
+        $excludedCategory = $this->createCategory('Salary '.$suffix, excludedFromForecast: true);
+
+        $this->createTransaction($account, $normalCategory, 'Groceries', '2024-01-10', '-50.00');
+        $this->createTransaction($account, $excludedCategory, 'Salary', '2024-01-05', '-30.00');
+
+        $this->entityManager->flush();
+
+        self::assertSame(-80.0, $this->transactionRepository->sumFiltered(account: $account));
+        self::assertSame(-50.0, $this->transactionRepository->sumFiltered(account: $account, excludeForecastExcluded: true));
+    }
+
+    public function testSumFilteredCombinesCurrentMonthOnlyAndUpcomingOnly(): void
+    {
+        $suffix = uniqid();
+        $today = new \DateTimeImmutable('today');
+
+        $account = $this->createAccount($suffix);
+        $category = $this->createCategory('Tag '.$suffix);
+
+        // Dated today (or earlier this month): counted by "current month" alone, but not "upcoming".
+        $this->createTransaction($account, $category, 'Already due', $today->format('Y-m-d'), '-10.00');
+        // Dated tomorrow: counted by both "current month" and "upcoming", *unless* the test happens to
+        // run on the last calendar day of the month, in which case "tomorrow" rolls into next month and
+        // this transaction is excluded from both sums instead — a known, accepted edge case given the
+        // repository has no injectable clock to pin "today" to a fixed, mid-month date in tests.
+        $this->createTransaction($account, $category, 'Still to come', $today->modify('+1 day')->format('Y-m-d'), '-20.00');
+        // Two months out: never counted by "current month", regardless of the flags above.
+        $this->createTransaction($account, $category, 'Far away', $today->modify('+2 months')->format('Y-m-d'), '-1000.00');
+
+        $this->entityManager->flush();
+
+        self::assertSame(-30.0, $this->transactionRepository->sumFiltered(account: $account, currentMonthOnly: true));
+        self::assertSame(-20.0, $this->transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true));
+    }
+
     private function createAccount(string $suffix): Account
     {
         $type = new AccountType();
@@ -72,22 +113,23 @@ final class TransactionRepositoryTest extends KernelTestCase
         return $account;
     }
 
-    private function createCategory(string $name): Category
+    private function createCategory(string $name, bool $excludedFromForecast = false): Category
     {
         $category = new Category();
         $category->setName($name);
+        $category->setExcludedFromForecast($excludedFromForecast);
         $this->entityManager->persist($category);
 
         return $category;
     }
 
-    private function createTransaction(Account $account, Category $category, string $title, string $date): Transaction
+    private function createTransaction(Account $account, Category $category, string $title, string $date, string $amount = '-10.00'): Transaction
     {
         $transaction = new Transaction();
         $transaction->setAccount($account);
         $transaction->setCategory($category);
         $transaction->setTitle($title);
-        $transaction->setAmount('-10.00');
+        $transaction->setAmount($amount);
         $transaction->setDate(new \DateTimeImmutable($date));
         $this->entityManager->persist($transaction);
 

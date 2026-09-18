@@ -9,6 +9,7 @@ use App\Service\CurrencyResolver;
 use App\Service\DatabaseBackupService;
 use App\Twig\AppExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AppExtensionTest extends TestCase
 {
@@ -24,6 +25,7 @@ final class AppExtensionTest extends TestCase
             $this->createStub(DatabaseBackupService::class),
             $appSettingRepository,
             new CurrencyResolver(),
+            $this->createStub(TranslatorInterface::class),
         );
     }
 

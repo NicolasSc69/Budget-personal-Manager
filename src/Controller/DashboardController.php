@@ -78,6 +78,8 @@ class DashboardController extends AbstractController
         $upcomingBalance = $transactionRepository->sumAll($account);
         $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true);
         $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
+        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true);
+        $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
         $savingsStats = null;
         $progress = null;
@@ -127,6 +129,7 @@ class DashboardController extends AbstractController
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
             'forecastBalance' => $forecastBalance,
+            'forecastCheck' => $forecastCheck,
             'balanceDate' => $forecastService->formatDate($today),
             'categoryBreakdownPeriodLabel' => $translator->trans('from %start% to %end%', [
                 '%start%' => $forecastService->formatDate($categoryPeriodStart),

@@ -51,7 +51,7 @@
             {% if filterAccount and not filterAccount.isSavings %}
                 <td>
                     <p class="label">{{ 'Projected balance'|trans }}</p>
-                    <p class="value {{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ forecastBalance|money }}</p>
+                    <p class="value {{ forecastCheck < 0 ? 'amount-negative' : 'amount-positive' }}">{{ forecastCheck|money }} <span class="{{ forecastBalance < 0 ? 'amount-negative' : 'amount-positive' }}">({{ 'Theoretical'|trans }}: {{ forecastBalance|money }})</span></p>
                 </td>
             {% endif %}
         </tr>

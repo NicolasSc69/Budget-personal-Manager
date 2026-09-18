@@ -553,6 +553,9 @@ msgstr "Clair"
 msgid "Line %line%: invalid format, expected 1 or 2 columns separated by a comma."
 msgstr "Ligne %line% : format invalide, 1 ou 2 colonnes séparées par une virgule sont attendues."
 
+msgid "Main figure: current balance + current month total, excluding tags marked Excluded from forecast. In parentheses: estimate based on average salary for the month."
+msgstr "Chiffre principal : solde actuel + total du mois en cours, hors étiquettes marquées Exclue du prévisionnel. Entre parenthèses : estimation basée sur le salaire moyen du mois (théorique)."
+
 msgid "Manage account types"
 msgstr "Gérer les types de compte"
 
@@ -710,7 +713,7 @@ msgid "Progress toward the goal"
 msgstr "Progression vers l'objectif"
 
 msgid "Projected balance"
-msgstr "Solde prévisionnel"
+msgstr "Solde prévisionnel approximatif"
 
 msgid "Projected balance (with interest)"
 msgstr "Solde prévisionnel (avec intérêts)"
@@ -858,6 +861,9 @@ msgstr "Tests"
 
 msgid "Text size"
 msgstr "Taille du texte"
+
+msgid "Theoretical"
+msgstr "Théorique"
 
 msgid "The account has been created."
 msgstr "La création du compte a bien été prise en compte."
