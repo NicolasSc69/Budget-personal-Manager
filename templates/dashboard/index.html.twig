@@ -421,6 +421,7 @@
         {% endif %}
 
         {% if currentAccount %}
+        const dailyBalanceCurrencySymbol = {{ currency_symbol()|json_encode|raw }};
         const dailyBalanceChartTextStyle = { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}) };
         const dailyBalanceDatasets = [{
             label: '{{ (savingsStats ? 'Actual balance' : 'Balance')|trans|e('js') }}',
@@ -429,6 +430,8 @@
             backgroundColor: 'rgba(13, 110, 253, 0.15)',
             fill: true,
             pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHitRadius: 10,
             borderWidth: 2,
             tension: 0.1,
             spanGaps: false,
@@ -441,6 +444,8 @@
             backgroundColor: 'rgba(25, 135, 84, 0.15)',
             fill: true,
             pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHitRadius: 10,
             borderWidth: 2,
             tension: 0.1,
             spanGaps: false,
@@ -455,10 +460,32 @@
             },
             options: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
                 plugins: {
                     legend: {
                         display: {{ savingsStats ? 'true' : 'false' }},
                         labels: { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}) },
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                if (context.parsed.y === null || context.parsed.y === undefined) {
+                                    return null;
+                                }
+
+                                const formattedValue = context.parsed.y.toLocaleString('fr-FR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                });
+
+                                return `${context.dataset.label}: ${formattedValue} ${dailyBalanceCurrencySymbol}`;
+                            },
+                        },
                     },
                 },
                 scales: {

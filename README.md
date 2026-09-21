@@ -31,6 +31,8 @@ The dashboard and transaction list show the same balance figures per account (or
 
 For savings accounts with an interest rate set, the dashboard additionally computes a simple-interest projection (`BudgetForecastService::projectDailyBalancesWithInterest()`): average monthly interest, projected year-end interest, and a day-by-day forecasted balance curve shown on the daily balance chart.
 
+The daily balance chart (`#dailyBalanceChart`, `templates/dashboard/index.html.twig`) uses Chart.js's `interaction: { mode: 'index', intersect: false }` rather than the default point-hit-testing mode, so hovering anywhere over a given day shows a tooltip with that day's balance — the line itself is drawn with `pointRadius: 0` (no visible dots), which would otherwise make the default `nearest`/`intersect: true` tooltip nearly impossible to trigger. The tooltip value is formatted with `toLocaleString('fr-FR', …)` plus the configured currency symbol (`currency_symbol()`), matching the `money` filter's formatting.
+
 ## Requirements
 
 - PHP >= 8.4, with `pdo_sqlite`, `intl`, `ctype`, `iconv` extensions.
