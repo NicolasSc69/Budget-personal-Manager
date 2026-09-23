@@ -269,6 +269,30 @@ class TransactionRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    public function findEarliestDate(?Account $account = null): ?\DateTimeImmutable
+    {
+        return $this->findAggregateDate('MIN(t.date)', $account);
+    }
+
+    public function findLatestDate(?Account $account = null): ?\DateTimeImmutable
+    {
+        return $this->findAggregateDate('MAX(t.date)', $account);
+    }
+
+    private function findAggregateDate(string $select, ?Account $account): ?\DateTimeImmutable
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->select($select);
+
+        if (null !== $account) {
+            $qb->andWhere('t.account = :account')->setParameter('account', $account);
+        }
+
+        $result = $qb->getQuery()->getSingleScalarResult();
+
+        return null !== $result ? new \DateTimeImmutable($result) : null;
+    }
+
     public function sumAll(?Account $account = null): float
     {
         $qb = $this->createQueryBuilder('t')

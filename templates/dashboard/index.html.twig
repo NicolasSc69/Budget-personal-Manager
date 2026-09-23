@@ -226,7 +226,7 @@
     {% if currentAccount %}
     <div class="card mb-4">
         <div class="card-body">
-            <div class="text-muted small mb-1">{{ 'Balance trend from January 1 to December 31, %year%'|trans({'%year%': "now"|date('Y')}) }}</div>
+            <div class="text-muted small mb-1">{{ dailyBalanceChartPeriodLabel }}</div>
             <canvas id="dailyBalanceChart" height="90"></canvas>
         </div>
     </div>
@@ -356,12 +356,12 @@
                 const elapsed = timestamp - start;
                 const progress = Math.min(1, elapsed / duration);
                 const eased = 1 - Math.pow(1 - progress, 3);
-                label.textContent = Math.round(eased * target) + '%';
+                label.textContent = (eased * target).toFixed(2) + '%';
 
                 if (progress < 1) {
                     requestAnimationFrame(step);
                 } else {
-                    label.textContent = Math.round(target) + '%';
+                    label.textContent = target.toFixed(2) + '%';
                 }
             }
 
@@ -372,7 +372,7 @@
         const ACCOUNT_PALETTE = ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0', '#6c757d', '#dc3545'];
 
         const isDarkTheme = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-        Chart.defaults.color = isDarkTheme ? '#212529' : '#000000';
+        Chart.defaults.color = isDarkTheme ? '#ffffff' : '#000000';
         Chart.defaults.borderColor = isDarkTheme ? '#495057' : '#dee2e6';
 
         function goToUrlOnClick(chart, urls) {

@@ -154,8 +154,8 @@ msgstr "Fichier de sauvegarde introuvable."
 msgid "Balance"
 msgstr "Solde"
 
-msgid "Balance trend from January 1 to December 31, %year%"
-msgstr "Évolution du solde du 1er janvier au 31 décembre %year%"
+msgid "Balance trend from %start% to %end%"
+msgstr "Évolution du solde du %start% au %end%"
 
 msgid "Browse"
 msgstr "Parcourir"

@@ -154,8 +154,8 @@ msgstr "Backup file not found."
 msgid "Balance"
 msgstr "Balance"
 
-msgid "Balance trend from January 1 to December 31, %year%"
-msgstr "Balance trend from January 1 to December 31, %year%"
+msgid "Balance trend from %start% to %end%"
+msgstr "Balance trend from %start% to %end%"
 
 msgid "Browse"
 msgstr "Browse"

@@ -32,8 +32,7 @@ class DashboardController extends AbstractController
 
         $today = new \DateTimeImmutable('today');
         $currentYear = (int) $today->format('Y');
-        $yearStart = new \DateTimeImmutable($currentYear.'-01-01');
-        $yearEnd = new \DateTimeImmutable($currentYear.'-12-31');
+        [$dailyBalanceStart, $dailyBalanceEnd] = $this->resolveDailyBalancePeriod($transactionRepository, $account, $today);
 
         $yearlyReports = [];
         foreach (['previous' => $currentYear - 1, 'current' => $currentYear, 'next' => $currentYear + 1] as $key => $year) {
@@ -55,7 +54,7 @@ class DashboardController extends AbstractController
         $categoryPeriodEnd = $today;
         $categoryBreakdownExpense = array_slice($forecastService->getCategoryBreakdown($categoryPeriodStart, $categoryPeriodEnd, $account, 'expense'), 0, 10);
         $categoryBreakdownIncome = array_slice($forecastService->getCategoryBreakdown($categoryPeriodStart, $categoryPeriodEnd, $account, 'income'), 0, 10);
-        $dailyBalances = $forecastService->getDailyBalances($yearStart, $yearEnd, $account);
+        $dailyBalances = $forecastService->getDailyBalances($dailyBalanceStart, $dailyBalanceEnd, $account);
 
         $accountBalances = [];
         $averageSalaryTotal = 0.0;
@@ -135,6 +134,10 @@ class DashboardController extends AbstractController
                 '%start%' => $forecastService->formatDate($categoryPeriodStart),
                 '%end%' => $forecastService->formatDate($categoryPeriodEnd),
             ]),
+            'dailyBalanceChartPeriodLabel' => $translator->trans('Balance trend from %start% to %end%', [
+                '%start%' => $forecastService->formatDate($dailyBalanceStart),
+                '%end%' => $forecastService->formatDate($dailyBalanceEnd),
+            ]),
             'totalBalance' => array_sum(array_column($accountBalances, 'balance')),
             'totalUpcomingBalance' => array_sum(array_column($accountBalances, 'upcomingBalance')),
             'chartDataJson' => $this->buildChartDataJson($yearlyReports, $categoryBreakdownExpense, $categoryBreakdownIncome, $accountBalances, $dailyBalances, $dailyBalanceForecast, $today),
@@ -145,6 +148,34 @@ class DashboardController extends AbstractController
             'recentTransactions' => $transactionRepository->findRecent($account, 10),
             'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account)),
         ]);
+    }
+
+    /**
+     * Resolves the [start, end] period shown on the daily balance chart:
+     * - if the account's whole history spans less than 365 days, show it in full (first to last operation),
+     *   without padding into an empty future;
+     * - otherwise, show a 365-day window centered on the midpoint between the first and last operation.
+     *
+     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable}
+     */
+    private function resolveDailyBalancePeriod(TransactionRepository $transactionRepository, ?Account $account, \DateTimeImmutable $today): array
+    {
+        $firstDate = $transactionRepository->findEarliestDate($account);
+        $lastDate = $transactionRepository->findLatestDate($account);
+
+        if (null === $firstDate || null === $lastDate) {
+            return [$today, $today];
+        }
+
+        $historySpanDays = $firstDate->diff($lastDate)->days;
+
+        if ($historySpanDays < 365) {
+            return [$firstDate, $lastDate];
+        }
+
+        $center = $firstDate->modify('+'.intdiv($historySpanDays, 2).' days');
+
+        return [$center->modify('-182 days'), $center->modify('+183 days')];
     }
 
     private function buildChartDataJson(array $yearlyReports, array $categoryBreakdownExpense, array $categoryBreakdownIncome, array $accountBalances, array $dailyBalances, ?array $dailyBalanceForecast, \DateTimeImmutable $today): string
