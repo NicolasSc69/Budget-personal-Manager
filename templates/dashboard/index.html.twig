@@ -423,13 +423,65 @@
         {% if currentAccount %}
         const dailyBalanceCurrencySymbol = {{ currency_symbol()|json_encode|raw }};
         const dailyBalanceChartTextStyle = { font: { weight: 'bold' }, ...(isDarkTheme ? { color: '#fff' } : {}) };
+        const dailyBalanceTodayIndex = typeof chartData.dailyBalance.todayIndex === 'number' ? chartData.dailyBalance.todayIndex : null;
+        const dailyBalanceTodayColor = isDarkTheme ? '#ffc107' : '#dc3545';
+        const dailyBalanceTodayPointRadius = (ctx) => (ctx.dataIndex === dailyBalanceTodayIndex ? 5 : 0);
+        const dailyBalanceTodayLinePlugin = {
+            id: 'dailyBalanceTodayLine',
+            afterDatasetsDraw(chart) {
+                if (dailyBalanceTodayIndex === null) {
+                    return;
+                }
+
+                const { ctx, chartArea, scales } = chart;
+                const x = scales.x.getPixelForValue(dailyBalanceTodayIndex);
+                if (x < chartArea.left || x > chartArea.right) {
+                    return;
+                }
+
+                ctx.save();
+                ctx.strokeStyle = dailyBalanceTodayColor;
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(x, chartArea.top);
+                ctx.lineTo(x, chartArea.bottom);
+                ctx.stroke();
+
+                ctx.setLineDash([]);
+                ctx.fillStyle = dailyBalanceTodayColor;
+                ctx.font = 'bold 18px sans-serif';
+                const todayBalance = chartData.dailyBalance.values[dailyBalanceTodayIndex];
+                let todayLabel = '{{ 'Today'|trans|e('js') }}';
+                let todayAmount = '';
+                let todayAmountColor = dailyBalanceTodayColor;
+                if (todayBalance !== null && todayBalance !== undefined) {
+                    todayLabel += ' : ';
+                    todayAmount = `${todayBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${dailyBalanceCurrencySymbol}`;
+                    todayAmountColor = todayBalance >= 0
+                        ? (isDarkTheme ? '#75b798' : '#198754')
+                        : (isDarkTheme ? '#ea868f' : '#dc3545');
+                }
+                const todayLabelWidth = ctx.measureText(todayLabel).width;
+                const todayTotalWidth = todayLabelWidth + ctx.measureText(todayAmount).width;
+                const todayTextX = x + 4 + todayTotalWidth > chartArea.right ? x - 4 - todayTotalWidth : x + 4;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(todayLabel, todayTextX, chartArea.top + 2);
+                ctx.fillStyle = todayAmountColor;
+                ctx.fillText(todayAmount, todayTextX + todayLabelWidth, chartArea.top + 2);
+                ctx.restore();
+            },
+        };
         const dailyBalanceDatasets = [{
             label: '{{ (savingsStats ? 'Actual balance' : 'Balance')|trans|e('js') }}',
             data: chartData.dailyBalance.values,
             borderColor: '#0d6efd',
             backgroundColor: 'rgba(13, 110, 253, 0.15)',
             fill: true,
-            pointRadius: 0,
+            pointRadius: dailyBalanceTodayPointRadius,
+            pointBackgroundColor: dailyBalanceTodayColor,
+            pointBorderColor: dailyBalanceTodayColor,
             pointHoverRadius: 4,
             pointHitRadius: 10,
             borderWidth: 2,
@@ -443,7 +495,9 @@
             borderColor: '#198754',
             backgroundColor: 'rgba(25, 135, 84, 0.15)',
             fill: true,
-            pointRadius: 0,
+            pointRadius: dailyBalanceTodayPointRadius,
+            pointBackgroundColor: dailyBalanceTodayColor,
+            pointBorderColor: dailyBalanceTodayColor,
             pointHoverRadius: 4,
             pointHitRadius: 10,
             borderWidth: 2,
@@ -458,6 +512,7 @@
                 labels: chartData.dailyBalance.labels,
                 datasets: dailyBalanceDatasets,
             },
+            plugins: [dailyBalanceTodayLinePlugin],
             options: {
                 responsive: true,
                 interaction: {

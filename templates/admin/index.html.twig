@@ -197,7 +197,7 @@
                     <p class="text-muted small">
                         {{ 'Replaces'|trans }} <strong>{{ 'all current data'|trans }}</strong> {{ 'with the contents of a file exported from this application. A backup of the current database is automatically kept next to the file before the import.'|trans }}
                     </p>
-                    <form method="post" action="{{ path('app_admin_import') }}" enctype="multipart/form-data" onsubmit="return confirm('{{ 'Importing this file will replace ALL current data. Continue?'|trans|e('js') }}');">
+                    <form method="post" action="{{ path('app_admin_import') }}" enctype="multipart/form-data" data-confirm="{{ 'Importing this file will replace ALL current data. Continue?'|trans }}" data-confirm-variant="danger">
                         <input type="hidden" name="_token" value="{{ csrf_token('admin_import') }}">
                         <div class="mb-3">
                             <input type="file" name="database_file" accept=".db,.sqlite,.sqlite3" class="form-control" required>

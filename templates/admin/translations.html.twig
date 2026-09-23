@@ -61,7 +61,7 @@
                                             </form>
                                         {% endif %}
                                         {% if locale != 'en' and locale != defaultLocale %}
-                                            <form method="post" action="{{ path('app_admin_translations_remove_locale') }}" class="d-inline" onsubmit="return confirm('{{ 'Remove this language?'|trans|e('js') }}');">
+                                            <form method="post" action="{{ path('app_admin_translations_remove_locale') }}" class="d-inline" data-confirm="{{ 'Remove this language?'|trans }}" data-confirm-variant="danger">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('admin_translations_remove_locale') }}">
                                                 <input type="hidden" name="locale" value="{{ locale }}">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'Delete'|trans }}</button>

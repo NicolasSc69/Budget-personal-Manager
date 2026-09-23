@@ -9,7 +9,7 @@
             <a href="{{ path('app_admin_index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
             </a>
-            <form method="post" action="{{ path('app_admin_tests_run') }}" onsubmit="return confirm('{{ 'Run the test suite now?'|trans|e('js') }}');">
+            <form method="post" action="{{ path('app_admin_tests_run') }}" data-confirm="{{ 'Run the test suite now?'|trans }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('admin_tests_run') }}">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-play-fill"></i> {{ 'Run tests'|trans }}

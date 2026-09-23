@@ -157,6 +157,9 @@ msgstr "Solde"
 msgid "Balance trend from %start% to %end%"
 msgstr "Évolution du solde du %start% au %end%"
 
+msgid "Today"
+msgstr "Aujourd'hui"
+
 msgid "Browse"
 msgstr "Parcourir"
 
@@ -171,6 +174,12 @@ msgstr "Cache"
 
 msgid "Cancel"
 msgstr "Annuler"
+
+msgid "Confirm"
+msgstr "Confirmer"
+
+msgid "Confirmation"
+msgstr "Confirmation"
 
 msgid "Cannot delete a person associated with an account."
 msgstr "Impossible de supprimer une personne associée à un compte."

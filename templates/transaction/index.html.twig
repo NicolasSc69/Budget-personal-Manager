@@ -329,13 +329,13 @@
 
         const confirmBulkDeleteLabel = {{ 'Delete %count% selected transaction(s)?'|trans|json_encode|raw }};
 
-        bulkDeleteBtns.forEach((btn) => btn.addEventListener('click', () => {
+        bulkDeleteBtns.forEach((btn) => btn.addEventListener('click', async () => {
             const checked = getCheckboxes().filter((cb) => cb.checked);
             if (checked.length === 0) {
                 return;
             }
 
-            if (!confirm(confirmBulkDeleteLabel.replace('%count%', checked.length))) {
+            if (!await window.confirmDialog(confirmBulkDeleteLabel.replace('%count%', checked.length), { variant: 'danger' })) {
                 return;
             }
 

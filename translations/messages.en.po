@@ -157,6 +157,9 @@ msgstr "Balance"
 msgid "Balance trend from %start% to %end%"
 msgstr "Balance trend from %start% to %end%"
 
+msgid "Today"
+msgstr "Today"
+
 msgid "Browse"
 msgstr "Browse"
 
@@ -171,6 +174,12 @@ msgstr "Cache"
 
 msgid "Cancel"
 msgstr "Cancel"
+
+msgid "Confirm"
+msgstr "Confirm"
+
+msgid "Confirmation"
+msgstr "Confirmation"
 
 msgid "Cannot delete a person associated with an account."
 msgstr "Cannot delete a person associated with an account."

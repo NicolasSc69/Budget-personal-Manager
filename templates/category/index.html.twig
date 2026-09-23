@@ -9,7 +9,7 @@
             <a href="{{ path('app_dashboard') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
             </a>
-            <form method="post" action="{{ path('app_category_randomize_colors') }}" onsubmit="return confirm('{{ 'Randomly shuffle the colors of all tags?'|trans|e('js') }}');">
+            <form method="post" action="{{ path('app_category_randomize_colors') }}" data-confirm="{{ 'Randomly shuffle the colors of all tags?'|trans }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('randomize_category_colors') }}">
                 <button type="submit" class="btn btn-outline-secondary">
                     <i class="bi bi-palette"></i> {{ 'Randomize colors'|trans }}

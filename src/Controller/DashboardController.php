@@ -214,6 +214,7 @@ class DashboardController extends AbstractController
                 'labels' => array_map(static fn (array $d) => \DateTimeImmutable::createFromFormat('Y-m-d', $d['date'])->format('d/m'), $dailyBalances),
                 'values' => array_map(static fn (array $d) => (!$hasForecast || $d['date'] <= $todayKey) ? round($d['balance'], 2) : null, $dailyBalances),
                 'forecastValues' => array_map(static fn (array $d) => $forecastByDate[$d['date']] ?? null, $dailyBalances),
+                'todayIndex' => array_search($todayKey, array_column($dailyBalances, 'date'), true),
             ],
         ];
 

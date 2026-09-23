@@ -1,4 +1,4 @@
-<form method="post" action="{{ path('app_category_delete', {'id': category.id}) }}" onsubmit="return confirm('{{ 'Delete this tag?'|trans|e('js') }}');" class="d-inline" data-native-submit>
+<form method="post" action="{{ path('app_category_delete', {'id': category.id}) }}" data-confirm="{{ 'Delete this tag?'|trans }}" data-confirm-variant="danger" class="d-inline" data-native-submit>
     <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ category.id) }}">
     {% if category.transactions is not empty %}
         <button class="btn btn-outline-danger {{ buttonClass|default('') }}" type="button" disabled title="{{ 'Cannot delete: transactions are attached to this tag'|trans }}">{{ 'Delete'|trans }}</button>
