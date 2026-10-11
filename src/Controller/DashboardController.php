@@ -152,6 +152,7 @@ class DashboardController extends AbstractController
 
     /**
      * Resolves the [start, end] period shown on the daily balance chart:
+     * - for a savings account, show the whole current year (January 1st to December 31st);
      * - if the account's whole history spans less than 365 days, show it in full (first to last operation),
      *   without padding into an empty future;
      * - otherwise, show a 365-day window centered on the midpoint between the first and last operation.
@@ -160,6 +161,10 @@ class DashboardController extends AbstractController
      */
     private function resolveDailyBalancePeriod(TransactionRepository $transactionRepository, ?Account $account, \DateTimeImmutable $today): array
     {
+        if (null !== $account && $account->isSavings()) {
+            return [$today->modify('first day of january this year'), $today->modify('last day of december this year')];
+        }
+
         $firstDate = $transactionRepository->findEarliestDate($account);
         $lastDate = $transactionRepository->findLatestDate($account);
 

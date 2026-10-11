@@ -58,7 +58,8 @@
      * Shows a confirmation popin and resolves with true if the user confirms.
      *
      * @param {string} message
-     * @param {{variant?: string}} options variant: Bootstrap color of the confirm button (primary, danger...)
+     * @param {Object} options
+     * @param {string} [options.variant] Bootstrap color of the confirm button (primary, danger...)
      * @returns {Promise<boolean>}
      */
     window.confirmDialog = function (message, options = {}) {
