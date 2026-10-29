@@ -1143,3 +1143,9 @@ msgstr "Calculée à partir de la date de l'opération : jusqu'au 20, débit le 
 
 msgid "Deferred debit"
 msgstr "Débit différé"
+
+msgid "Current accounts"
+msgstr "Comptes courants"
+
+msgid "All accounts tab"
+msgstr "Tous"

@@ -6,7 +6,7 @@
     {% set currentYear = "now"|date('Y') %}
     <div class="mb-4">
         <h1 class="h3 w-100 mb-0">{{ 'Dashboard'|trans }}</h1>
-        <p class="h3 mb-0"><small class="text-muted">· {% if currentAccount %}{{ currentAccount.label }}{% if currentAccount.person %} ({{ currentAccount.person.name }}){% endif %}{% else %}{{ 'All accounts'|trans }}{% endif %}</small></p>
+        <p class="h3 mb-0"><small class="text-muted">{% if currentAccount %}{{ currentAccount.label }}{% if currentAccount.person %} ({{ currentAccount.person.name }}){% endif %}{% else %}{{ 'All accounts'|trans }}{% endif %}</small></p>
     </div>
 
     {% if not currentAccount %}
@@ -18,49 +18,91 @@
                         <div class="col-md-6">
                             <canvas id="accountsPolarChart" height="260"></canvas>
                         </div>
-                        <div class="col-md-6">
-                            <table class="table table-sm align-middle text-center mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>{{ 'Account'|trans }}</th>
-                                        <th>{{ 'Balance'|trans }}</th>
-                                        <th>{{ 'Upcoming balance'|trans }}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for entry in accountBalances %}
-                                        <tr>
-                                            <td>
-                                                <a href="{{ entry.url }}" class="text-decoration-none" data-account-nav="{{ account_nav_message(entry.account) }}">
-                                                    {{ entry.account.label }}{% if entry.account.person %} ({{ entry.account.person.name }}){% endif %}
-                                                </a>
-                                                {% if entry.pendingRecurringCount > 0 %}
-                                                    <a href="{{ path('app_transaction_recurring', {'account': entry.account.id}) }}" class="btn btn-sm btn-outline-warning ms-2" title="{{ 'Recurring transactions to duplicate'|trans }}">
-                                                        <i class="bi bi-arrow-repeat"></i> {{ entry.pendingRecurringCount }}
-                                                    </a>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <span class="fw-semibold {{ entry.balance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ entry.balance|money }}</span>
-                                            </td>
-                                            <td>
-                                                <span class="fw-semibold {{ entry.upcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ entry.upcomingBalance|money }}</span>
-                                            </td>
-                                        </tr>
+                        <div class="col-md-6 align-self-start">
+                            {% set accountGroups = [
+                                {key: 'current', label: 'Current accounts'|trans, entries: accountBalances|filter(e => not e.account.savings)},
+                                {key: 'savings', label: 'Savings'|trans, entries: accountBalances|filter(e => e.account.savings)},
+                            ]|filter(g => g.entries|length > 0) %}
+                            <ul class="nav nav-tabs mb-3" role="tablist">
+                                {% for group in accountGroups %}
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link{{ loop.first ? ' active' }}" id="accounts-{{ group.key }}-tab" data-bs-toggle="tab" data-bs-target="#accounts-{{ group.key }}-pane" type="button" role="tab" aria-controls="accounts-{{ group.key }}-pane" aria-selected="{{ loop.first ? 'true' : 'false' }}">
+                                            {{ group.label }} <span class="badge text-bg-secondary">{{ group.entries|length }}</span>
+                                        </button>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            <div class="tab-content">
+                                {% for group in accountGroups %}
+                                    {% set personGroups = {all: {label: 'All accounts tab'|trans, entries: group.entries, showPerson: true}} %}
+                                    {% for entry in group.entries %}
+                                        {% set personKey = entry.account.person ? 'p' ~ entry.account.person.id : 'none' %}
+                                        {% set personGroup = personGroups[personKey] ?? {label: entry.account.person ? entry.account.person.name : 'No person'|trans, entries: [], showPerson: false} %}
+                                        {% set personGroups = personGroups|merge({(personKey): personGroup|merge({entries: personGroup.entries|merge([entry])})}) %}
                                     {% endfor %}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th>{{ 'Total across all accounts'|trans }}</th>
-                                        <th>
-                                            <span class="{{ totalBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ totalBalance|money }}</span>
-                                        </th>
-                                        <th>
-                                            <span class="{{ totalUpcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ totalUpcomingBalance|money }}</span>
-                                        </th>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                    <div class="tab-pane fade{{ loop.first ? ' show active' }}" id="accounts-{{ group.key }}-pane" role="tabpanel" aria-labelledby="accounts-{{ group.key }}-tab" tabindex="0">
+                                        <ul class="nav nav-pills mb-2" role="tablist">
+                                            {% for personKey, personGroup in personGroups %}
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link py-1 px-2 small{{ loop.first ? ' active' }}" id="accounts-{{ group.key }}-{{ personKey }}-tab" data-bs-toggle="tab" data-bs-target="#accounts-{{ group.key }}-{{ personKey }}-pane" type="button" role="tab" aria-controls="accounts-{{ group.key }}-{{ personKey }}-pane" aria-selected="{{ loop.first ? 'true' : 'false' }}">
+                                                        {{ personGroup.label }} <span class="badge text-bg-secondary">{{ personGroup.entries|length }}</span>
+                                                    </button>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                        <div class="tab-content">
+                                            {% for personKey, personGroup in personGroups %}
+                                                {% set groupBalance = personGroup.entries|reduce((sum, e) => sum + e.balance, 0) %}
+                                                {% set groupUpcomingBalance = personGroup.entries|reduce((sum, e) => sum + e.upcomingBalance, 0) %}
+                                                <div class="tab-pane fade{{ loop.first ? ' show active' }}" id="accounts-{{ group.key }}-{{ personKey }}-pane" role="tabpanel" aria-labelledby="accounts-{{ group.key }}-{{ personKey }}-tab" tabindex="0">
+                                                    <table class="table table-sm align-middle text-center mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>{{ 'Account'|trans }}</th>
+                                                                <th>{{ 'Balance'|trans }}</th>
+                                                                <th>{{ 'Upcoming balance'|trans }}</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for entry in personGroup.entries %}
+                                                                <tr>
+                                                                    <td>
+                                                                        <a href="{{ entry.url }}" class="text-decoration-none" data-account-nav="{{ account_nav_message(entry.account) }}">
+                                                                            {{ entry.account.label }}{% if personGroup.showPerson and entry.account.person %} ({{ entry.account.person.name }}){% endif %}
+                                                                        </a>
+                                                                        {% if entry.pendingRecurringCount > 0 %}
+                                                                            <a href="{{ path('app_transaction_recurring', {'account': entry.account.id}) }}" class="btn btn-sm btn-outline-warning ms-2" title="{{ 'Recurring transactions to duplicate'|trans }}">
+                                                                                <i class="bi bi-arrow-repeat"></i> {{ entry.pendingRecurringCount }}
+                                                                            </a>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="fw-semibold {{ entry.balance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ entry.balance|money }}</span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="fw-semibold {{ entry.upcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ entry.upcomingBalance|money }}</span>
+                                                                    </td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                        <tfoot>
+                                                            <tr>
+                                                                <th>{{ 'Total'|trans }}</th>
+                                                                <th>
+                                                                    <span class="{{ groupBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ groupBalance|money }}</span>
+                                                                </th>
+                                                                <th>
+                                                                    <span class="{{ groupUpcomingBalance < 0 ? 'amount-negative' : 'amount-positive' }}">{{ groupUpcomingBalance|money }}</span>
+                                                                </th>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
                 {% else %}

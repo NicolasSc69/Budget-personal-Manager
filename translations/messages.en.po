@@ -1143,3 +1143,9 @@ msgstr "Calculated from the transaction date: up to the 20th, debited on the 5th
 
 msgid "Deferred debit"
 msgstr "Deferred debit"
+
+msgid "Current accounts"
+msgstr "Current accounts"
+
+msgid "All accounts tab"
+msgstr "All"
