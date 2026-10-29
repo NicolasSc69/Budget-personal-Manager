@@ -28,10 +28,10 @@ class BudgetForecastService
         $balance = $this->transactionRepository->getInitialBalanceOffset($account);
         $lastBalanceBeforeWindow = $balance;
 
-        foreach ($this->transactionRepository->findAllOrderedByDate($account) as $transaction) {
+        foreach ($this->transactionRepository->findAllOrderedByEffectiveDate($account) as $transaction) {
             $amount = (float) $transaction->getAmount();
             $balance += $amount;
-            $key = $transaction->getDate()->format('Y-m');
+            $key = $transaction->getEffectiveDate()->format('Y-m');
             $monthlyBalances[$key] = $balance;
 
             if ($key < $sinceKey) {
@@ -87,9 +87,9 @@ class BudgetForecastService
         $balance = $this->transactionRepository->getInitialBalanceOffset($account);
         $lastBalanceBeforeWindow = $balance;
 
-        foreach ($this->transactionRepository->findAllOrderedByDate($account) as $transaction) {
+        foreach ($this->transactionRepository->findAllOrderedByEffectiveDate($account) as $transaction) {
             $balance += (float) $transaction->getAmount();
-            $key = $transaction->getDate()->format('Y-m-d');
+            $key = $transaction->getEffectiveDate()->format('Y-m-d');
             $dailyBalances[$key] = $balance;
 
             if ($key < $sinceKey) {

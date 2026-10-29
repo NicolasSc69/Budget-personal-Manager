@@ -1,5 +1,15 @@
 {{ form_start(form, formAction is defined and formAction ? {'action': formAction} : {}) }}
     {{ form_row(form.date) }}
+    <div class="d-flex flex-wrap column-gap-4">
+        {{ form_row(form.isDeferredDebit) }}
+        {{ form_row(form.isCheque) }}
+    </div>
+    <div id="tx-debit-date-wrapper">
+        {{ form_row(form.debitDate) }}
+    </div>
+    <div id="tx-cheque-number-wrapper">
+        {{ form_row(form.chequeNumber) }}
+    </div>
     {{ form_row(form.recurrence) }}
     <div id="tx-recurrence-end-date-wrapper">
         {{ form_row(form.recurrenceEndDate) }}
@@ -18,10 +28,6 @@
         </div>
         {{ form_help(form.title) }}
         {{ form_errors(form.title) }}
-    </div>
-    {{ form_row(form.isCheque) }}
-    <div id="tx-cheque-number-wrapper">
-        {{ form_row(form.chequeNumber) }}
     </div>
     <div class="mt-3">
         <button class="btn btn-primary">{{ button_label|default('Save'|trans) }}</button>
@@ -75,6 +81,49 @@
 
     syncChequeWrapper();
     chequeCheckbox.addEventListener('change', syncChequeWrapper);
+})();
+</script>
+
+<script>
+(function () {
+    const dateInput = document.getElementById('{{ form.date.vars.id }}');
+    const deferredCheckbox = document.getElementById('{{ form.isDeferredDebit.vars.id }}');
+    const debitDateInput = document.getElementById('{{ form.debitDate.vars.id }}');
+    const debitDateWrapper = document.getElementById('tx-debit-date-wrapper');
+
+    if (!dateInput || !deferredCheckbox || !debitDateInput || !debitDateWrapper) {
+        return;
+    }
+
+    // Keep in sync with Transaction::computeDeferredDebitDate(): up to the 20th, debited on the
+    // 5th of the next month; after the 20th, on the 5th of the month after next.
+    function computeDebitDate(value) {
+        const [year, month, day] = value.split('-').map(Number);
+        if (!year || !month || !day) {
+            return '';
+        }
+        const debit = new Date(Date.UTC(year, month - 1 + (day <= 20 ? 1 : 2), 5));
+        return debit.toISOString().slice(0, 10);
+    }
+
+    function recomputeDebitDate() {
+        if (deferredCheckbox.checked && dateInput.value) {
+            debitDateInput.value = computeDebitDate(dateInput.value);
+        }
+    }
+
+    function syncDebitDateWrapper() {
+        debitDateWrapper.classList.toggle('d-none', !deferredCheckbox.checked);
+    }
+
+    syncDebitDateWrapper();
+    deferredCheckbox.addEventListener('change', () => {
+        syncDebitDateWrapper();
+        if (deferredCheckbox.checked && !debitDateInput.value) {
+            recomputeDebitDate();
+        }
+    });
+    dateInput.addEventListener('change', recomputeDebitDate);
 })();
 </script>
 

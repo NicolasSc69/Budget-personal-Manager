@@ -35,6 +35,12 @@
                         {{ transaction.amount|money }}
                     </td>
                 </tr>
+                {% if transaction.deferredDebit %}
+                <tr>
+                    <th>{{ 'Actual debit date'|trans }}</th>
+                    <td>{{ transaction.debitDate ? transaction.debitDate|date('d/m/Y') : '' }}</td>
+                </tr>
+                {% endif %}
                 {% if transaction.cheque %}
                 <tr>
                     <th>{{ 'Cheque'|trans }}</th>

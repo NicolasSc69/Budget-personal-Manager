@@ -36,6 +36,8 @@
         {% if filterSearch %}<span>{{ 'Title'|trans }}: {{ filterSearch }}</span>{% endif %}
         {% if filterUpcomingOnly %}<span>{{ 'Upcoming only'|trans }}</span>{% endif %}
         {% if filterCurrentMonthOnly %}<span>{{ 'Current month'|trans }}</span>{% endif %}
+        {% if filterDeferredDebitOnly %}<span>{{ 'Deferred debit'|trans }}</span>{% endif %}
+        {% if filterChequeOnly %}<span>{{ 'Cheque'|trans }}</span>{% endif %}
     </p>
 
     <table class="balances">

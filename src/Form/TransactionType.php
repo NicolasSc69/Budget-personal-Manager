@@ -118,6 +118,16 @@ class TransactionType extends AbstractType
                 'required' => false,
                 'attr' => ['maxlength' => 50],
             ])
+            ->add('isDeferredDebit', CheckboxType::class, [
+                'label' => 'Deferred payment',
+                'required' => false,
+            ])
+            ->add('debitDate', null, [
+                'label' => 'Actual debit date',
+                'widget' => 'single_text',
+                'required' => false,
+                'help' => 'Calculated from the transaction date: up to the 20th, debited on the 5th of the next month; after the 20th, on the 5th of the month after next.',
+            ])
             ->add('redirectTo', HiddenType::class, [
                 'mapped' => false,
                 'required' => false,
@@ -144,6 +154,12 @@ class TransactionType extends AbstractType
 
             if ($transaction->isCheque() && !$form->get('chequeNumber')->getData()) {
                 $form->get('chequeNumber')->addError(new FormError($this->translator->trans('Please provide the cheque number.')));
+            }
+
+            if (!$transaction->isDeferredDebit()) {
+                $transaction->setDebitDate(null);
+            } elseif (null === $transaction->getDebitDate() && null !== $transaction->getDate()) {
+                $transaction->setDebitDate(Transaction::computeDeferredDebitDate($transaction->getDate()));
             }
 
             if (null !== $transaction->getDestinationAccount() && null !== $transaction->getAccount() && $transaction->getDestinationAccount()->getId() === $transaction->getAccount()->getId()) {

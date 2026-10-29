@@ -52,6 +52,12 @@ class Transaction
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $chequeNumber = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isDeferredDebit = false;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $debitDate = null;
+
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'recurrenceChildren')]
     #[ORM\JoinColumn(name: 'recurrence_parent_id', nullable: true, onDelete: 'SET NULL')]
     private ?self $recurrenceParent = null;
@@ -170,6 +176,53 @@ class Transaction
         $this->chequeNumber = $chequeNumber;
 
         return $this;
+    }
+
+    public function isDeferredDebit(): bool
+    {
+        return $this->isDeferredDebit;
+    }
+
+    public function setIsDeferredDebit(bool $isDeferredDebit): static
+    {
+        $this->isDeferredDebit = $isDeferredDebit;
+
+        return $this;
+    }
+
+    public function getDebitDate(): ?\DateTimeImmutable
+    {
+        return $this->debitDate;
+    }
+
+    public function setDebitDate(?\DateTimeImmutable $debitDate): static
+    {
+        $this->debitDate = $debitDate;
+
+        return $this;
+    }
+
+    /**
+     * Date the amount actually hits the account balance: the actual debit date for a deferred
+     * payment, the transaction date otherwise.
+     */
+    public function getEffectiveDate(): ?\DateTimeImmutable
+    {
+        return $this->debitDate ?? $this->date;
+    }
+
+    /**
+     * Deferred debit card: transactions made from the 21st of the previous month up to the
+     * 20th of the current month are debited on the 5th of the next month; transactions made
+     * after the 20th are debited on the 5th of the month after next.
+     *
+     * Keep in sync with computeDebitDate() in templates/transaction/_form.html.twig.
+     */
+    public static function computeDeferredDebitDate(\DateTimeImmutable $date): \DateTimeImmutable
+    {
+        $monthsAhead = (int) $date->format('j') <= 20 ? 1 : 2;
+
+        return $date->modify('first day of this month')->modify(sprintf('+%d months +4 days', $monthsAhead));
     }
 
     public function isRecurring(): bool

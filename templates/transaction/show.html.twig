@@ -3,7 +3,7 @@
 {% block title %}{{ 'Transaction of %date%'|trans({'%date%': transaction.date|date('d/m/Y')}) }}{% endblock %}
 
 {% block body %}
-    <h1 class="h3 mb-3">{{ 'Transaction of %date%'|trans({'%date%': transaction.date|date('d/m/Y')}) }}</h1>
+    <h1 class="h3 w-100 mb-3">{{ 'Transaction of %date%'|trans({'%date%': transaction.date|date('d/m/Y')}) }}</h1>
 
     <div class="card">
         <div class="card-body">
@@ -42,6 +42,12 @@
                             {{ transaction.amount|money }}
                         </td>
                     </tr>
+                    {% if transaction.deferredDebit %}
+                    <tr>
+                        <th>{{ 'Actual debit date'|trans }}</th>
+                        <td>{{ transaction.debitDate ? transaction.debitDate|date('d/m/Y') : '' }}</td>
+                    </tr>
+                    {% endif %}
                     {% if transaction.cheque %}
                     <tr>
                         <th>{{ 'Cheque'|trans }}</th>

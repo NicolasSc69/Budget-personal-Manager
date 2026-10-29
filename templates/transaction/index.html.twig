@@ -15,13 +15,13 @@
 {% import _self as helpers %}
 
 {% block body %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">
-            {{ 'Transactions'|trans }}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="w-100">
+            <h1 class="h3 w-100 mb-0">{{ 'Transactions'|trans }}</h1>
             {% if filterAccount %}
-                <br>{{ filterAccount.label }}{% if filterAccount.person %} ({{ filterAccount.person.name }}){% endif %}
+                <p class="h3 mb-0">{{ filterAccount.label }}{% if filterAccount.person %} ({{ filterAccount.person.name }}){% endif %}</p>
             {% endif %}
-        </h1>
+        </div>
         <div class="d-flex gap-2">
             <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
                 <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
@@ -85,6 +85,20 @@
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="filter-upcoming-only" name="upcoming_only" value="1" {{ filterUpcomingOnly ? 'checked' : '' }}>
                         <label class="form-check-label" for="filter-upcoming-only">{{ 'Upcoming only'|trans }}</label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="filter-deferred-debit" name="deferred_debit" value="1" {{ filterDeferredDebitOnly ? 'checked' : '' }}>
+                        <label class="form-check-label" for="filter-deferred-debit">{{ 'Deferred debit'|trans }}</label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="filter-cheque" name="cheque" value="1" {{ filterChequeOnly ? 'checked' : '' }}>
+                        <label class="form-check-label" for="filter-cheque">{{ 'Cheque'|trans }}</label>
                     </div>
                 </div>
 
@@ -185,12 +199,24 @@
                 </thead>
                 <tbody>
                 {% for transaction in transactions %}
-                    <tr class="{{ transaction.upcoming ? 'tx-row-upcoming table-warning fst-italic' : 'tx-row-done' }}">
+                    {# A deferred payment not debited yet gets the upcoming background (without the italic). #}
+                    {% set debitPending = transaction.deferredDebit and transaction.debitDate and transaction.debitDate|date('Y-m-d') > 'now'|date('Y-m-d') %}
+                    <tr class="{{ transaction.upcoming ? 'tx-row-upcoming table-warning fst-italic' : (debitPending ? 'tx-row-upcoming table-warning' : 'tx-row-done') }}">
                         <td>
                             <input type="checkbox" class="form-check-input tx-select-checkbox" value="{{ transaction.id }}" aria-label="{{ 'Select this transaction'|trans }}">
                         </td>
-                        <td>{{ transaction.title|default('') != '' ? transaction.title : '—' }}</td>
-                        <td>{{ transaction.date ? transaction.date|date('d/m/Y') : '' }}</td>
+                        <td>
+                            {{ transaction.title|default('') != '' ? transaction.title : '—' }}
+                            {% if transaction.cheque %}
+                                <div class="small text-muted text-nowrap"><i class="bi bi-envelope-paper"></i> {{ 'Cheque'|trans }} {{ 'No.'|trans }}{{ transaction.chequeNumber }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ transaction.date ? transaction.date|date('d/m/Y') : '' }}
+                            {% if transaction.deferredDebit and transaction.debitDate %}
+                                <div class="small text-muted text-nowrap" title="{{ 'Actual debit date'|trans }}"><i class="bi bi-credit-card"></i> {{ transaction.debitDate|date('d/m/Y') }}</div>
+                            {% endif %}
+                        </td>
                         <td>
                             <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="text-decoration-none tx-account-link" data-account-nav="{{ account_nav_message(transaction.account) }}">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
                         </td>
@@ -240,6 +266,10 @@
     </div>
 
     {{ include('_pagination.html.twig', {routeName: 'app_transaction_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams}) }}
+
+    <a href="{{ path('app_transaction_new', filterAccount ? {'account': filterAccount.id} : {}) }}" class="btn btn-primary rounded-circle shadow position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center fs-3" style="width: 3.5rem; height: 3.5rem; z-index: 1030;" data-transaction-modal data-title="{{ 'New transaction'|trans }}" title="{{ 'New transaction'|trans }}" aria-label="{{ 'New transaction'|trans }}">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+    </a>
 {% endblock %}
 
 {% block javascripts %}

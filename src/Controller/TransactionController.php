@@ -51,17 +51,19 @@ final class TransactionController extends AbstractController
         $search = $filters['search'];
         $upcomingOnly = $filters['upcomingOnly'];
         $currentMonthOnly = $filters['currentMonthOnly'];
+        $deferredDebitOnly = $filters['deferredDebitOnly'];
+        $chequeOnly = $filters['chequeOnly'];
 
         $sort = $request->query->get('sort', 'id');
         $direction = 'asc' === strtolower((string) $request->query->get('direction', 'desc')) ? 'asc' : 'desc';
 
         $itemsPerPage = $appSettingRepository->getSettings()->getItemsPerPage();
-        $totalTransactions = $transactionRepository->countFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly);
+        $totalTransactions = $transactionRepository->countFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly);
         $totalPages = max(1, (int) ceil($totalTransactions / $itemsPerPage));
         $page = min(max(1, (int) $request->query->get('page', 1)), $totalPages);
 
-        $transactions = $transactionRepository->findFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $sort, $direction, $itemsPerPage, ($page - 1) * $itemsPerPage, $upcomingOnly, $currentMonthOnly);
-        $filteredAmountSum = $transactionRepository->sumFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, excludeForecastExcluded: $currentMonthOnly);
+        $transactions = $transactionRepository->findFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $sort, $direction, $itemsPerPage, ($page - 1) * $itemsPerPage, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly);
+        $filteredAmountSum = $transactionRepository->sumFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, excludeForecastExcluded: $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
 
         $allAccounts = $accountRepository->findAllOrderedByLabel();
 
@@ -71,9 +73,9 @@ final class TransactionController extends AbstractController
         $averageSalaryTotal = null !== $account
             ? (float) ($account->getAverageSalary() ?? 0)
             : array_sum(array_map(static fn ($a) => (float) ($a->getAverageSalary() ?? 0), $allAccounts));
-        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true);
+        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
-        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true);
+        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
         $queryParams = array_filter([
@@ -86,6 +88,8 @@ final class TransactionController extends AbstractController
             'search' => $search,
             'upcoming_only' => $upcomingOnly ? '1' : null,
             'current_month' => $currentMonthOnly ? '1' : null,
+            'deferred_debit' => $deferredDebitOnly ? '1' : null,
+            'cheque' => $chequeOnly ? '1' : null,
             'sort' => $sort,
             'direction' => $direction,
         ], static fn ($value) => null !== $value && '' !== $value);
@@ -101,6 +105,8 @@ final class TransactionController extends AbstractController
             'filterSearch' => $search,
             'filterUpcomingOnly' => $upcomingOnly,
             'filterCurrentMonthOnly' => $currentMonthOnly,
+            'filterDeferredDebitOnly' => $deferredDebitOnly,
+            'filterChequeOnly' => $chequeOnly,
             'accounts' => $allAccounts,
             'categories' => $categoryRepository->findAllOrderedByHierarchy(),
             'sort' => $sort,
@@ -135,9 +141,9 @@ final class TransactionController extends AbstractController
         $averageSalaryTotal = null !== $account
             ? (float) ($account->getAverageSalary() ?? 0)
             : array_sum(array_map(static fn ($a) => (float) ($a->getAverageSalary() ?? 0), $accountRepository->findAllOrderedByLabel()));
-        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true);
+        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
-        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true);
+        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
         $transactions = $transactionRepository->findFilteredForExport(
@@ -150,6 +156,8 @@ final class TransactionController extends AbstractController
             $filters['search'],
             $filters['upcomingOnly'],
             $filters['currentMonthOnly'],
+            $filters['deferredDebitOnly'],
+            $filters['chequeOnly'],
         );
 
         $totalAmount = $transactionRepository->sumFiltered(
@@ -163,6 +171,8 @@ final class TransactionController extends AbstractController
             $filters['upcomingOnly'],
             $filters['currentMonthOnly'],
             excludeForecastExcluded: $filters['currentMonthOnly'],
+            deferredDebitOnly: $filters['deferredDebitOnly'],
+            chequeOnly: $filters['chequeOnly'],
         );
 
         $html = $this->renderView('transaction/_export_pdf.html.twig', [
@@ -177,6 +187,8 @@ final class TransactionController extends AbstractController
             'filterSearch' => $filters['search'],
             'filterUpcomingOnly' => $filters['upcomingOnly'],
             'filterCurrentMonthOnly' => $filters['currentMonthOnly'],
+            'filterDeferredDebitOnly' => $filters['deferredDebitOnly'],
+            'filterChequeOnly' => $filters['chequeOnly'],
             'generatedAt' => new \DateTimeImmutable(),
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
@@ -201,7 +213,7 @@ final class TransactionController extends AbstractController
     }
 
     /**
-     * @return array{account: ?\App\Entity\Account, category: ?\App\Entity\Category, dateFrom: ?\DateTimeImmutable, dateFromRaw: ?string, dateTo: ?\DateTimeImmutable, dateToRaw: ?string, amountMin: ?float, amountMinRaw: ?string, amountMax: ?float, amountMaxRaw: ?string, search: ?string, upcomingOnly: bool, currentMonthOnly: bool}
+     * @return array{account: ?\App\Entity\Account, category: ?\App\Entity\Category, dateFrom: ?\DateTimeImmutable, dateFromRaw: ?string, dateTo: ?\DateTimeImmutable, dateToRaw: ?string, amountMin: ?float, amountMinRaw: ?string, amountMax: ?float, amountMaxRaw: ?string, search: ?string, upcomingOnly: bool, currentMonthOnly: bool, deferredDebitOnly: bool, chequeOnly: bool}
      */
     private function parseFilters(Request $request, AccountRepository $accountRepository, CategoryRepository $categoryRepository): array
     {
@@ -234,6 +246,8 @@ final class TransactionController extends AbstractController
             'search' => $search,
             'upcomingOnly' => null !== $request->query->get('upcoming_only'),
             'currentMonthOnly' => null !== $request->query->get('current_month'),
+            'deferredDebitOnly' => null !== $request->query->get('deferred_debit'),
+            'chequeOnly' => null !== $request->query->get('cheque'),
         ];
     }
 

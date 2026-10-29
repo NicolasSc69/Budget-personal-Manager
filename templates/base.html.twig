@@ -76,6 +76,29 @@
                 [data-bs-theme="dark"] .tx-row-upcoming .tx-account-link {
                     color: #0d47a1;
                 }
+                /* Content popins: fixed to 95% of the viewport height, the body scrolls inside. */
+                .modal-dialog-tall {
+                    height: 95vh;
+                    margin-top: 2.5vh;
+                    margin-bottom: 2.5vh;
+                }
+                .modal-dialog-tall .modal-content {
+                    height: 100%;
+                    overflow: hidden;
+                }
+                .modal-dialog-tall .modal-body {
+                    overflow-y: auto;
+                }
+
+                @media (min-width: 576px) {
+                    .tx-form-modal-dialog {
+                        max-width: 70%;
+                    }
+                }
+
+                [data-bs-theme="dark"] .tx-row-upcoming .text-muted {
+                    color: rgba(0, 0, 0, .65) !important;
+                }
 
                 [data-bs-theme="light"] .tx-select-checkbox,
                 [data-bs-theme="light"] #select-all-transactions {

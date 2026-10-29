@@ -1131,3 +1131,15 @@ msgstr "unknown reason"
 
 msgid "with the contents of a file exported from this application. A backup of the current database is automatically kept next to the file before the import."
 msgstr "with the contents of a file exported from this application. A backup of the current database is automatically kept next to the file before the import."
+
+msgid "Deferred payment"
+msgstr "Deferred payment"
+
+msgid "Actual debit date"
+msgstr "Actual debit date"
+
+msgid "Calculated from the transaction date: up to the 20th, debited on the 5th of the next month; after the 20th, on the 5th of the month after next."
+msgstr "Calculated from the transaction date: up to the 20th, debited on the 5th of the next month; after the 20th, on the 5th of the month after next."
+
+msgid "Deferred debit"
+msgstr "Deferred debit"

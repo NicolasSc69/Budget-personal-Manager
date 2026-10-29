@@ -63,6 +63,11 @@ class TransactionRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * DQL expression of the date a transaction actually impacts the balance (see Transaction::getEffectiveDate()).
+     */
+    private const EFFECTIVE_DATE = 'COALESCE(t.debitDate, t.date)';
+
     private const SORTABLE_FIELDS = [
         'title' => 't.title',
         'date' => 't.date',
@@ -83,7 +88,11 @@ class TransactionRepository extends ServiceEntityRepository
         bool $upcomingOnly = false,
         bool $currentMonthOnly = false,
         bool $excludeForecastExcluded = false,
+        bool $byEffectiveDate = false,
+        bool $deferredDebitOnly = false,
+        bool $chequeOnly = false,
     ): \Doctrine\ORM\QueryBuilder {
+        $dateExpr = $byEffectiveDate ? self::EFFECTIVE_DATE : 't.date';
         $qb = $this->createQueryBuilder('t')
             ->join('t.account', 'a')
             ->join('t.category', 'c');
@@ -97,11 +106,11 @@ class TransactionRepository extends ServiceEntityRepository
         }
 
         if (null !== $dateFrom) {
-            $qb->andWhere('t.date >= :dateFrom')->setParameter('dateFrom', $dateFrom, Types::DATE_IMMUTABLE);
+            $qb->andWhere($dateExpr.' >= :dateFrom')->setParameter('dateFrom', $dateFrom, Types::DATE_IMMUTABLE);
         }
 
         if (null !== $dateTo) {
-            $qb->andWhere('t.date <= :dateTo')->setParameter('dateTo', $dateTo, Types::DATE_IMMUTABLE);
+            $qb->andWhere($dateExpr.' <= :dateTo')->setParameter('dateTo', $dateTo, Types::DATE_IMMUTABLE);
         }
 
         if (null !== $amountMin) {
@@ -117,12 +126,20 @@ class TransactionRepository extends ServiceEntityRepository
         }
 
         if ($upcomingOnly) {
-            $qb->andWhere('t.date > :today')->setParameter('today', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE);
+            $qb->andWhere($dateExpr.' > :today')->setParameter('today', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE);
         }
 
         if ($currentMonthOnly) {
-            $qb->andWhere('t.date >= :monthStart')->setParameter('monthStart', new \DateTimeImmutable('first day of this month'), Types::DATE_IMMUTABLE);
-            $qb->andWhere('t.date <= :monthEnd')->setParameter('monthEnd', new \DateTimeImmutable('last day of this month'), Types::DATE_IMMUTABLE);
+            $qb->andWhere($dateExpr.' >= :monthStart')->setParameter('monthStart', new \DateTimeImmutable('first day of this month'), Types::DATE_IMMUTABLE);
+            $qb->andWhere($dateExpr.' <= :monthEnd')->setParameter('monthEnd', new \DateTimeImmutable('last day of this month'), Types::DATE_IMMUTABLE);
+        }
+
+        if ($deferredDebitOnly) {
+            $qb->andWhere('t.isDeferredDebit = true');
+        }
+
+        if ($chequeOnly) {
+            $qb->andWhere('t.isCheque = true');
         }
 
         if ($excludeForecastExcluded) {
@@ -149,8 +166,10 @@ class TransactionRepository extends ServiceEntityRepository
         ?int $offset = null,
         bool $upcomingOnly = false,
         bool $currentMonthOnly = false,
+        bool $deferredDebitOnly = false,
+        bool $chequeOnly = false,
     ): array {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
 
         $sortExpr = self::SORTABLE_FIELDS[$sortField] ?? self::SORTABLE_FIELDS['date'];
         $direction = 'asc' === strtolower($sortDirection) ? 'ASC' : 'DESC';
@@ -188,8 +207,10 @@ class TransactionRepository extends ServiceEntityRepository
         ?string $search = null,
         bool $upcomingOnly = false,
         bool $currentMonthOnly = false,
+        bool $deferredDebitOnly = false,
+        bool $chequeOnly = false,
     ): array {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
 
         $qb->orderBy('c.name', 'ASC')
             ->addOrderBy('t.title', 'ASC')
@@ -209,8 +230,10 @@ class TransactionRepository extends ServiceEntityRepository
         ?string $search = null,
         bool $upcomingOnly = false,
         bool $currentMonthOnly = false,
+        bool $deferredDebitOnly = false,
+        bool $chequeOnly = false,
     ): int {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
 
         return (int) $qb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
     }
@@ -226,8 +249,11 @@ class TransactionRepository extends ServiceEntityRepository
         bool $upcomingOnly = false,
         bool $currentMonthOnly = false,
         bool $excludeForecastExcluded = false,
+        bool $byEffectiveDate = false,
+        bool $deferredDebitOnly = false,
+        bool $chequeOnly = false,
     ): float {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded, $byEffectiveDate, $deferredDebitOnly, $chequeOnly);
 
         $total = $qb->select('SUM(t.amount)')->getQuery()->getSingleScalarResult();
 
@@ -254,12 +280,15 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Ordered by the date each transaction actually impacts the balance (actual debit date for deferred payments).
+     *
      * @return Transaction[]
      */
-    public function findAllOrderedByDate(?Account $account = null): array
+    public function findAllOrderedByEffectiveDate(?Account $account = null): array
     {
         $qb = $this->createQueryBuilder('t')
-            ->orderBy('t.date', 'ASC')
+            ->addSelect(self::EFFECTIVE_DATE.' AS HIDDEN effectiveDate')
+            ->orderBy('effectiveDate', 'ASC')
             ->addOrderBy('t.id', 'ASC');
 
         if (null !== $account) {
@@ -311,7 +340,7 @@ class TransactionRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('t')
             ->select('SUM(t.amount)')
-            ->andWhere('t.date <= :until')
+            ->andWhere(self::EFFECTIVE_DATE.' <= :until')
             ->setParameter('until', $until, Types::DATE_IMMUTABLE);
 
         if (null !== $account) {

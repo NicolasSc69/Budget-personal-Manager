@@ -75,9 +75,9 @@ class DashboardController extends AbstractController
 
         $currentBalance = $transactionRepository->sumUntil($today, $account);
         $upcomingBalance = $transactionRepository->sumAll($account);
-        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true);
+        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
-        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true);
+        $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
         $savingsStats = null;

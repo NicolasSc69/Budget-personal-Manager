@@ -3,13 +3,13 @@
 {% block title %}{{ 'Recurring transactions to duplicate'|trans }}{% endblock %}
 
 {% block body %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">
-            {{ 'Recurring transactions to duplicate'|trans }}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="w-100">
+            <h1 class="h3 w-100 mb-0">{{ 'Recurring transactions to duplicate'|trans }}</h1>
             {% if filterAccount %}
-                <small class="text-muted">· {{ filterAccount.label }}</small>
+                <p class="h3 mb-0"><small class="text-muted">· {{ filterAccount.label }}</small></p>
             {% endif %}
-        </h1>
+        </div>
         <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
             <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
         </a>

@@ -136,6 +136,8 @@ class RecurringTransactionGenerator
         $occurrence->setRecurrenceEndDate($template->getRecurrenceEndDate());
         $occurrence->setIsCheque($template->isCheque());
         $occurrence->setChequeNumber($template->getChequeNumber());
+        $occurrence->setIsDeferredDebit($template->isDeferredDebit());
+        $occurrence->setDebitDate($template->isDeferredDebit() ? Transaction::computeDeferredDebitDate($date) : null);
         $occurrence->setDestinationAccount($template->getDestinationAccount());
         $occurrence->setRecurrenceParent($template);
 

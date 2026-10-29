@@ -4,14 +4,10 @@
 
 {% block body %}
     {% set currentYear = "now"|date('Y') %}
-    <h1 class="h3 mb-4">
-        {{ 'Dashboard'|trans }}
-        {% if currentAccount %}
-            <small class="text-muted">· {{ currentAccount.label }}{% if currentAccount.person %} ({{ currentAccount.person.name }}){% endif %}</small>
-        {% else %}
-            <small class="text-muted">· {{ 'All accounts'|trans }}</small>
-        {% endif %}
-    </h1>
+    <div class="mb-4">
+        <h1 class="h3 w-100 mb-0">{{ 'Dashboard'|trans }}</h1>
+        <p class="h3 mb-0"><small class="text-muted">· {% if currentAccount %}{{ currentAccount.label }}{% if currentAccount.person %} ({{ currentAccount.person.name }}){% endif %}{% else %}{{ 'All accounts'|trans }}{% endif %}</small></p>
+    </div>
 
     {% if not currentAccount %}
         <div class="card mb-4">
@@ -187,9 +183,21 @@
                     </thead>
                     <tbody>
                     {% for transaction in recentTransactions %}
-                        <tr class="{{ transaction.upcoming ? 'tx-row-upcoming table-warning fst-italic' : 'tx-row-done' }}">
-                            <td>{{ transaction.title ?: '—' }}</td>
-                            <td>{{ transaction.date|date('d/m/Y') }}</td>
+                        {# A deferred payment not debited yet gets the upcoming background (without the italic). #}
+                        {% set debitPending = transaction.deferredDebit and transaction.debitDate and transaction.debitDate|date('Y-m-d') > 'now'|date('Y-m-d') %}
+                        <tr class="{{ transaction.upcoming ? 'tx-row-upcoming table-warning fst-italic' : (debitPending ? 'tx-row-upcoming table-warning' : 'tx-row-done') }}">
+                            <td>
+                                {{ transaction.title ?: '—' }}
+                                {% if transaction.cheque %}
+                                    <div class="small text-muted text-nowrap"><i class="bi bi-envelope-paper"></i> {{ 'Cheque'|trans }} {{ 'No.'|trans }}{{ transaction.chequeNumber }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ transaction.date|date('d/m/Y') }}
+                                {% if transaction.deferredDebit and transaction.debitDate %}
+                                    <div class="small text-muted text-nowrap" title="{{ 'Actual debit date'|trans }}"><i class="bi bi-credit-card"></i> {{ transaction.debitDate|date('d/m/Y') }}</div>
+                                {% endif %}
+                            </td>
                             {% if not currentAccount %}
                                 <td>
                                     {{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}
