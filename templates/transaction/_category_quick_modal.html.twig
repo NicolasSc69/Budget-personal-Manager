@@ -104,7 +104,7 @@
         realSelect.value = '';
         const all = getCategories();
         const matches = query
-            ? all.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
+            ? all.filter((c) => c.name.toLowerCase().split(' › ').concat(c.name.toLowerCase()).some((part) => part.startsWith(query.toLowerCase())))
             : all;
         renderResults(matches, query);
     });
@@ -131,12 +131,21 @@
             event.preventDefault();
             quickErrors.classList.add('d-none');
 
-            const response = await fetch(quickForm.action, {
-                method: 'POST',
-                body: new FormData(quickForm),
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            const data = await response.json();
+            let response;
+            let data;
+            try {
+                response = await fetch(quickForm.action, {
+                    method: 'POST',
+                    body: new FormData(quickForm),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                data = await response.json();
+            } catch (error) {
+                response = { ok: false };
+                data = {};
+            } finally {
+                window.resetSubmitLoader?.(quickForm);
+            }
 
             if (response.ok) {
                 const option = document.createElement('option');

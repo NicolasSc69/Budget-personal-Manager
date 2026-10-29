@@ -107,11 +107,17 @@
         }
         event.preventDefault();
 
-        const response = await fetch(form.action || window.location.href, {
-            method: 'POST',
-            body: new FormData(form),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        });
+        let response;
+        try {
+            response = await fetch(form.action || window.location.href, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+        } catch (error) {
+            window.resetSubmitLoader?.(form);
+            return;
+        }
 
         const contentType = response.headers.get('Content-Type') || '';
 

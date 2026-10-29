@@ -200,6 +200,63 @@
         {% block javascripts %}{% endblock %}
 
         <script>
+            // The submit buttons of every form (opt out with [data-no-submit-loader] on the form) are
+            // disabled and show a spinner as soon as the form is submitted, and any further submit of
+            // that form is swallowed, so that a double click cannot create the same entry twice. Runs
+            // in the capture phase so it fires before the ajax modals' own submit handlers. Ajax
+            // handlers that keep the form on screen after the request call window.resetSubmitLoader(form).
+            (function () {
+                var LOADER_HTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>';
+
+                function loaderButtons(form) {
+                    return Array.from(form.elements).filter(function (element) {
+                        return 'submit' === element.type && ('BUTTON' === element.tagName || 'INPUT' === element.tagName);
+                    });
+                }
+
+                window.resetSubmitLoader = function (form) {
+                    delete form.dataset.submitting;
+                    loaderButtons(form).forEach(function (button) {
+                        if (undefined !== button.dataset.originalHtml) {
+                            button.innerHTML = button.dataset.originalHtml;
+                            delete button.dataset.originalHtml;
+                        }
+                        button.disabled = false;
+                        button.removeAttribute('aria-busy');
+                    });
+                };
+
+                document.addEventListener('submit', function (event) {
+                    var form = event.target;
+                    if (form.hasAttribute('data-no-submit-loader')) {
+                        return;
+                    }
+
+                    if (form.dataset.submitting) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        return;
+                    }
+
+                    form.dataset.submitting = '1';
+                    loaderButtons(form).forEach(function (button) {
+                        if ('BUTTON' === button.tagName) {
+                            button.dataset.originalHtml = button.innerHTML;
+                            button.innerHTML = LOADER_HTML + button.innerHTML;
+                        }
+                        button.disabled = true;
+                        button.setAttribute('aria-busy', 'true');
+                    });
+                }, true);
+
+                // Restores buttons when the page comes back from the browser's back/forward cache.
+                window.addEventListener('pageshow', function (event) {
+                    if (event.persisted) {
+                        document.querySelectorAll('form[data-submitting]').forEach(window.resetSubmitLoader);
+                    }
+                });
+            })();
+
             document.querySelectorAll('.toast').forEach(function (toastEl) {
                 new bootstrap.Toast(toastEl).show();
             });

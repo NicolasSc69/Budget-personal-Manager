@@ -112,7 +112,7 @@
     }
 
     function renderResults(query) {
-        const matches = existingTitles.filter((title) => title.toLowerCase().includes(query.toLowerCase()));
+        const matches = existingTitles.filter((title) => title.toLowerCase().startsWith(query.toLowerCase()));
         resultsBox.innerHTML = '';
 
         matches.slice(0, 20).forEach((title) => {

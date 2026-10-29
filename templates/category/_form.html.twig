@@ -34,7 +34,7 @@
     }
 
     function renderResults(query) {
-        const matches = existingCategories.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+        const matches = existingCategories.filter((c) => c.name.toLowerCase().split(' › ').concat(c.name.toLowerCase()).some((part) => part.startsWith(query.toLowerCase())));
         resultsBox.innerHTML = '';
 
         matches.forEach((category) => {
