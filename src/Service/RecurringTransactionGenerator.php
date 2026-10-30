@@ -26,8 +26,14 @@ class RecurringTransactionGenerator
         $today = new \DateTimeImmutable('today');
         $generated = 0;
 
+        $changed = false;
+
         foreach ($this->transactionRepository->findRecurringTemplates() as $template) {
-            $nextDate = $this->addInterval($this->transactionRepository->findLastOccurrenceDate($template), $template->getRecurrence());
+            $lastOccurrenceDate = $this->transactionRepository->findLastOccurrenceDate($template);
+            // Remember the existing occurrences, so deleting the latest one doesn't make it come back.
+            $changed = $this->markGeneratedUntil($template, $lastOccurrenceDate) || $changed;
+
+            $nextDate = $this->addInterval($template->getRecurrenceGeneratedUntil(), $template->getRecurrence());
 
             $iterations = 0;
             while ($nextDate <= $today && $iterations < self::MAX_OCCURRENCES_PER_TEMPLATE) {
@@ -39,7 +45,7 @@ class RecurringTransactionGenerator
             }
         }
 
-        if ($generated > 0) {
+        if ($generated > 0 || $changed) {
             $this->entityManager->flush();
         }
 
@@ -124,6 +130,60 @@ class RecurringTransactionGenerator
         return $duplicated;
     }
 
+    /**
+     * Before removing transactions: removed occurrences must not be generated again, and when a recurring template is removed, promote its oldest remaining
+     * occurrence as the new template. Otherwise every orphaned occurrence (still flagged as recurring)
+     * would become a template of its own and the series would be generated again from each of them.
+     *
+     * @param list<Transaction> $removed
+     */
+    public function reassignRecurrenceBeforeRemoval(array $removed): void
+    {
+        foreach ($removed as $template) {
+            if (null !== $parent = $template->getRecurrenceParent()) {
+                $this->markGeneratedUntil($parent, $template->getDate());
+
+                continue;
+            }
+
+            if (!$template->isRecurring()) {
+                continue;
+            }
+
+            $remaining = array_values(array_filter(
+                $template->getRecurrenceChildren()->toArray(),
+                static fn (Transaction $child) => !in_array($child, $removed, true),
+            ));
+
+            if ([] === $remaining) {
+                continue;
+            }
+
+            usort($remaining, static fn (Transaction $a, Transaction $b) => [$a->getDate(), $a->getId()] <=> [$b->getDate(), $b->getId()]);
+
+            $newTemplate = array_shift($remaining);
+            $newTemplate->setRecurrenceParent(null);
+            $newTemplate->setRecurrenceGeneratedUntil($template->getRecurrenceGeneratedUntil());
+            $this->markGeneratedUntil($newTemplate, $this->transactionRepository->findLastOccurrenceDate($template));
+
+            foreach ($remaining as $child) {
+                $child->setRecurrenceParent($newTemplate);
+            }
+        }
+    }
+
+    private function markGeneratedUntil(Transaction $template, \DateTimeImmutable $date): bool
+    {
+        $generatedUntil = $template->getRecurrenceGeneratedUntil();
+        if (null !== $generatedUntil && $generatedUntil >= $date) {
+            return false;
+        }
+
+        $template->setRecurrenceGeneratedUntil($date);
+
+        return true;
+    }
+
     private function createOccurrence(Transaction $template, \DateTimeImmutable $date, ?string $titleOverride = null, ?Category $categoryOverride = null): Transaction
     {
         $occurrence = new Transaction();
@@ -140,6 +200,7 @@ class RecurringTransactionGenerator
         $occurrence->setDebitDate($template->isDeferredDebit() ? Transaction::computeDeferredDebitDate($date) : null);
         $occurrence->setDestinationAccount($template->getDestinationAccount());
         $occurrence->setRecurrenceParent($template);
+        $this->markGeneratedUntil($template, $date);
 
         if (null !== $occurrence->getDestinationAccount()) {
             $this->entityManager->persist($this->createTransferMirror($occurrence, $occurrence->getDestinationAccount()));

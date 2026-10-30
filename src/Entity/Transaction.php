@@ -46,6 +46,13 @@ class Transaction
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $recurrenceEndDate = null;
 
+    /**
+     * On a recurring template: date up to which occurrences have already been generated, so that
+     * an occurrence deleted by the user is not generated again.
+     */
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $recurrenceGeneratedUntil = null;
+
     #[ORM\Column(options: ['default' => false])]
     private bool $isCheque = false;
 
@@ -238,6 +245,18 @@ class Transaction
     public function setRecurrenceEndDate(?\DateTimeImmutable $recurrenceEndDate): static
     {
         $this->recurrenceEndDate = $recurrenceEndDate;
+
+        return $this;
+    }
+
+    public function getRecurrenceGeneratedUntil(): ?\DateTimeImmutable
+    {
+        return $this->recurrenceGeneratedUntil;
+    }
+
+    public function setRecurrenceGeneratedUntil(?\DateTimeImmutable $recurrenceGeneratedUntil): static
+    {
+        $this->recurrenceGeneratedUntil = $recurrenceGeneratedUntil;
 
         return $this;
     }

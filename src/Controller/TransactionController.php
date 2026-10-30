@@ -299,7 +299,7 @@ final class TransactionController extends AbstractController
     }
 
     #[Route('/bulk-delete', name: 'app_transaction_bulk_delete', methods: ['POST'])]
-    public function bulkDelete(Request $request, EntityManagerInterface $entityManager, TransactionRepository $transactionRepository, TranslatorInterface $translator): Response
+    public function bulkDelete(Request $request, EntityManagerInterface $entityManager, TransactionRepository $transactionRepository, RecurringTransactionGenerator $recurringTransactionGenerator, TranslatorInterface $translator): Response
     {
         $redirectUrl = $this->resolveLocalRedirectUrl($request->getPayload()->getString('redirectTo'), $this->generateUrl('app_transaction_index'));
 
@@ -310,14 +310,12 @@ final class TransactionController extends AbstractController
         }
 
         $ids = array_map('intval', $request->request->all('ids'));
-        $deleted = 0;
+        $transactions = [] === $ids ? [] : $transactionRepository->findBy(['id' => $ids]);
+        $deleted = count($transactions);
 
-        foreach ($ids as $id) {
-            $transaction = $transactionRepository->find($id);
-            if (null !== $transaction) {
-                $entityManager->remove($transaction);
-                ++$deleted;
-            }
+        $recurringTransactionGenerator->reassignRecurrenceBeforeRemoval($transactions);
+        foreach ($transactions as $transaction) {
+            $entityManager->remove($transaction);
         }
 
         if ($deleted > 0) {
@@ -513,11 +511,12 @@ final class TransactionController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_transaction_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function delete(Request $request, Transaction $transaction, EntityManagerInterface $entityManager, TranslatorInterface $translator): Response
+    public function delete(Request $request, Transaction $transaction, EntityManagerInterface $entityManager, RecurringTransactionGenerator $recurringTransactionGenerator, TranslatorInterface $translator): Response
     {
         $redirectUrl = $this->resolveLocalRedirectUrl($request->getPayload()->getString('redirectTo'), $this->generateUrl('app_transaction_index'));
 
         if ($this->isCsrfTokenValid('delete'.$transaction->getId(), $request->getPayload()->getString('_token'))) {
+            $recurringTransactionGenerator->reassignRecurrenceBeforeRemoval([$transaction]);
             $entityManager->remove($transaction);
             $entityManager->flush();
 
