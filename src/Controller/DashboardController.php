@@ -215,6 +215,7 @@ class DashboardController extends AbstractController
             'accountLabels' => array_map(static fn (array $a) => $a['account']->getLabel().($a['account']->getPerson() ? ' ('.$a['account']->getPerson()->getName().')' : ''), $accountBalances),
             'accountBalances' => array_map(static fn (array $a) => round($a['balance'], 2), $accountBalances),
             'accountUrls' => array_column($accountBalances, 'url'),
+            'accountIds' => array_map(static fn (array $a) => $a['account']->getId(), $accountBalances),
             'dailyBalance' => [
                 'labels' => array_map(static fn (array $d) => \DateTimeImmutable::createFromFormat('Y-m-d', $d['date'])->format('d/m'), $dailyBalances),
                 'values' => array_map(static fn (array $d) => (!$hasForecast || $d['date'] <= $todayKey) ? round($d['balance'], 2) : null, $dailyBalances),

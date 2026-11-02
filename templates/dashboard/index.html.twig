@@ -18,7 +18,7 @@
                         <div class="col-md-6">
                             <canvas id="accountsPolarChart" height="260"></canvas>
                         </div>
-                        <div class="col-md-6 align-self-start">
+                        <div class="col-md-6 align-self-start" id="accountsTabs">
                             {% set accountGroups = [
                                 {key: 'current', label: 'Current accounts'|trans, entries: accountBalances|filter(e => not e.account.savings)},
                                 {key: 'savings', label: 'Savings'|trans, entries: accountBalances|filter(e => e.account.savings)},
@@ -54,7 +54,7 @@
                                             {% for personKey, personGroup in personGroups %}
                                                 {% set groupBalance = personGroup.entries|reduce((sum, e) => sum + e.balance, 0) %}
                                                 {% set groupUpcomingBalance = personGroup.entries|reduce((sum, e) => sum + e.upcomingBalance, 0) %}
-                                                <div class="tab-pane fade{{ loop.first ? ' show active' }}" id="accounts-{{ group.key }}-{{ personKey }}-pane" role="tabpanel" aria-labelledby="accounts-{{ group.key }}-{{ personKey }}-tab" tabindex="0">
+                                                <div class="tab-pane fade{{ loop.first ? ' show active' }}" id="accounts-{{ group.key }}-{{ personKey }}-pane" data-account-ids="{{ personGroup.entries|map(e => e.account.id)|json_encode }}" role="tabpanel" aria-labelledby="accounts-{{ group.key }}-{{ personKey }}-tab" tabindex="0">
                                                     <table class="table table-sm align-middle text-center mb-0">
                                                         <thead>
                                                             <tr>
@@ -448,13 +448,18 @@
         }
 
         {% if not currentAccount and accountBalances|length > 0 %}
+        // Colors are assigned on the full account list, so an account keeps its color whatever the active tab.
+        const accountColors = chartData.accountLabels.map((label, i) => ACCOUNT_PALETTE[i % ACCOUNT_PALETTE.length]);
+        // Arrays shown by the chart, refilled in place when the active tab changes (the click handler keeps references to them).
+        const visibleAccountLabels = [...chartData.accountLabels];
+        const visibleAccountUrls = [...chartData.accountUrls];
         const accountsChart = new Chart(document.getElementById('accountsPolarChart'), {
             type: 'doughnut',
             data: {
-                labels: chartData.accountLabels,
+                labels: visibleAccountLabels,
                 datasets: [{
-                    data: chartData.accountBalances,
-                    backgroundColor: chartData.accountLabels.map((label, i) => ACCOUNT_PALETTE[i % ACCOUNT_PALETTE.length]),
+                    data: [...chartData.accountBalances],
+                    backgroundColor: [...accountColors],
                 }],
             },
             options: {
@@ -467,7 +472,28 @@
                 },
             },
         });
-        document.getElementById('accountsPolarChart').onclick = goToAccountUrlOnClick(accountsChart, chartData.accountUrls, chartData.accountLabels);
+        document.getElementById('accountsPolarChart').onclick = goToAccountUrlOnClick(accountsChart, visibleAccountUrls, visibleAccountLabels);
+
+        // Only show the accounts of the active tabs (account type + person).
+        const accountsTabs = document.getElementById('accountsTabs');
+        function syncAccountsChartWithTabs() {
+            const typePane = accountsTabs.querySelector(':scope > .tab-content > .tab-pane.active');
+            const personPane = typePane ? typePane.querySelector('.tab-pane.active[data-account-ids]') : null;
+            if (!personPane) {
+                return;
+            }
+            // Twig's |filter keeps the original keys, so json_encode may give an object instead of an array.
+            const ids = Object.values(JSON.parse(personPane.dataset.accountIds)).map(Number);
+            const indexes = chartData.accountIds.map((id, i) => (ids.includes(id) ? i : -1)).filter((i) => i >= 0);
+            const dataset = accountsChart.data.datasets[0];
+            visibleAccountLabels.splice(0, visibleAccountLabels.length, ...indexes.map((i) => chartData.accountLabels[i]));
+            visibleAccountUrls.splice(0, visibleAccountUrls.length, ...indexes.map((i) => chartData.accountUrls[i]));
+            dataset.data = indexes.map((i) => chartData.accountBalances[i]);
+            dataset.backgroundColor = indexes.map((i) => accountColors[i]);
+            accountsChart.update();
+        }
+        accountsTabs.addEventListener('shown.bs.tab', syncAccountsChartWithTabs);
+        syncAccountsChartWithTabs();
         {% endif %}
 
         {% if currentAccount %}
