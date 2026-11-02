@@ -114,6 +114,8 @@ final class TransactionController extends AbstractController
             'queryParams' => $queryParams,
             'currentPage' => $page,
             'totalPages' => $totalPages,
+            'shownCount' => ($page - 1) * $itemsPerPage + count($transactions),
+            'totalCount' => $totalTransactions,
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
             'forecastBalance' => $forecastBalance,

@@ -42,6 +42,8 @@ final class CategoryController extends AbstractController
             'transactionCounts' => $transactionCounts,
             'currentPage' => $page,
             'totalPages' => $totalPages,
+            'shownCount' => ($page - 1) * $itemsPerPage + count($pagedCategories),
+            'totalCount' => $total,
             'filterSearch' => $search,
             'queryParams' => array_filter(['search' => $search], static fn ($value) => '' !== $value),
         ]);

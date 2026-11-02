@@ -61,23 +61,25 @@ class RecurringTransactionGenerator
      */
     public function findMonthlyTemplatesPendingNextMonth(?Account $account = null): array
     {
-        $nextMonthStart = (new \DateTimeImmutable('today'))->modify('first day of next month');
-        $monthAfterStart = $nextMonthStart->modify('+1 month');
+        $today = new \DateTimeImmutable('today');
 
         $pending = [];
 
         foreach ($this->transactionRepository->findRecurringTemplates($account, Recurrence::MONTHLY) as $template) {
-            if ($this->transactionRepository->existsOccurrenceBetween($template, $nextMonthStart, $monthAfterStart)) {
+            // The day of month comes from the template, so a Sunday->Monday shift on one
+            // occurrence doesn't drift the following ones.
+            [
+                'nextDate' => $nextDate,
+                'windowStart' => $windowStart,
+                'windowEnd' => $windowEnd,
+            ] = self::computeNextMonthOccurrence($today, (int) $template->getDate()->format('j'));
+
+            if ($this->transactionRepository->existsOccurrenceBetween($template, $windowStart, $windowEnd)) {
                 continue;
             }
 
             $lastOccurrenceDate = $this->transactionRepository->findLastOccurrenceDate($template);
-            $nextDate = $lastOccurrenceDate->modify('+1 month');
-            while ($nextDate < $nextMonthStart) {
-                $nextDate = $nextDate->modify('+1 month');
-            }
-
-            if ($nextDate >= $monthAfterStart) {
+            if ($lastOccurrenceDate >= $windowEnd) {
                 continue;
             }
 
@@ -219,6 +221,51 @@ class RecurringTransactionGenerator
         $mirror->setAccount($destinationAccount);
 
         return $mirror;
+    }
+
+    /**
+     * Next month's occurrence date for a monthly series anchored on $anchorDay (clamped to the
+     * month's last day, moved to Monday when it falls on a Sunday), and the [windowStart, windowEnd)
+     * date range in which an existing occurrence means next month is already covered.
+     *
+     * The window is the next calendar month, adjusted for Sunday shifts crossing a month boundary:
+     * this month's occurrence pushed to the 1st of next month doesn't count, and next month's
+     * occurrence pushed to the 1st of the month after does.
+     *
+     * @return array{nextDate: \DateTimeImmutable, windowStart: \DateTimeImmutable, windowEnd: \DateTimeImmutable}
+     */
+    public static function computeNextMonthOccurrence(\DateTimeImmutable $today, int $anchorDay): array
+    {
+        $today = $today->setTime(0, 0);
+        $currentMonthStart = $today->modify('first day of this month');
+        $nextMonthStart = $today->modify('first day of next month');
+        $monthAfterStart = $nextMonthStart->modify('+1 month');
+
+        $nextDate = self::shiftSundayToMonday(self::dayInMonth($nextMonthStart, $anchorDay));
+        $currentMonthDate = self::shiftSundayToMonday(self::dayInMonth($currentMonthStart, $anchorDay));
+
+        return [
+            'nextDate' => $nextDate,
+            'windowStart' => $currentMonthDate >= $nextMonthStart ? $nextMonthStart->modify('+1 day') : $nextMonthStart,
+            'windowEnd' => max($monthAfterStart, $nextDate->modify('+1 day')),
+        ];
+    }
+
+    /**
+     * Same month as $monthStart, on $day (clamped to the last day of that month).
+     */
+    private static function dayInMonth(\DateTimeImmutable $monthStart, int $day): \DateTimeImmutable
+    {
+        return $monthStart->setDate(
+            (int) $monthStart->format('Y'),
+            (int) $monthStart->format('n'),
+            min($day, (int) $monthStart->format('t')),
+        );
+    }
+
+    private static function shiftSundayToMonday(\DateTimeImmutable $date): \DateTimeImmutable
+    {
+        return '7' === $date->format('N') ? $date->modify('+1 day') : $date;
     }
 
     private function addInterval(\DateTimeImmutable $date, Recurrence $recurrence): \DateTimeImmutable

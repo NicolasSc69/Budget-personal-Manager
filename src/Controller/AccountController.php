@@ -47,6 +47,8 @@ final class AccountController extends AbstractController
             'pendingRecurringCounts' => $pendingRecurringCounts,
             'currentPage' => $page,
             'totalPages' => $totalPages,
+            'shownCount' => ($page - 1) * $itemsPerPage + count($accounts),
+            'totalCount' => $total,
         ]);
     }
 

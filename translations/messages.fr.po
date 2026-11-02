@@ -157,6 +157,27 @@ msgstr "Solde"
 msgid "Balance trend from %start% to %end%"
 msgstr "Évolution du solde du %start% au %end%"
 
+msgid "First"
+msgstr "Première"
+
+msgid "Go to first page"
+msgstr "Aller à la première page"
+
+msgid "Go to last page"
+msgstr "Aller à la dernière page"
+
+msgid "Go to next page"
+msgstr "Aller à la page suivante"
+
+msgid "Go to previous page"
+msgstr "Aller à la page précédente"
+
+msgid "Last"
+msgstr "Dernière"
+
+msgid "Pagination"
+msgstr "Pagination"
+
 msgid "Today"
 msgstr "Aujourd'hui"
 

@@ -87,7 +87,7 @@
             </table>
         </div>
     </div>
-    {{ include('_pagination.html.twig', {routeName: 'app_category_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams}) }}
+    {{ include('_pagination.html.twig', {routeName: 'app_category_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams, shownCount: shownCount, totalCount: totalCount}) }}
 {% endblock %}
 
 {% block javascripts %}

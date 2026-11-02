@@ -265,7 +265,7 @@
         </button>
     </div>
 
-    {{ include('_pagination.html.twig', {routeName: 'app_transaction_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams}) }}
+    {{ include('_pagination.html.twig', {routeName: 'app_transaction_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams, shownCount: shownCount, totalCount: totalCount}) }}
 
     <a href="{{ path('app_transaction_new', filterAccount ? {'account': filterAccount.id} : {}) }}" class="btn btn-primary rounded-circle shadow position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center fs-3" style="width: 3.5rem; height: 3.5rem; z-index: 1030;" data-transaction-modal data-title="{{ 'New transaction'|trans }}" title="{{ 'New transaction'|trans }}" aria-label="{{ 'New transaction'|trans }}">
         <i class="bi bi-plus-lg" aria-hidden="true"></i>

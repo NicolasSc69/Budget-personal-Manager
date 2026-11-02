@@ -76,6 +76,36 @@ final class RecurringTransactionGeneratorTest extends KernelTestCase
         self::assertCount(1, $newTemplates);
     }
 
+    public function testDuplicateToNextMonthMovesSundayToMonday(): void
+    {
+        $nextMonthStart = new \DateTimeImmutable('first day of next month');
+        $sunday = $nextMonthStart->modify('7' === $nextMonthStart->format('N') ? '+0 day' : 'next sunday');
+
+        $template = $this->createMonthlyTemplate('-1 month');
+        $template->setDate((new \DateTimeImmutable('first day of this month'))->setDate(
+            (int) (new \DateTimeImmutable('today'))->format('Y'),
+            (int) (new \DateTimeImmutable('today'))->format('n'),
+            (int) $sunday->format('j'),
+        ));
+        $this->entityManager->flush();
+
+        $pending = array_values(array_filter(
+            $this->generator->findMonthlyTemplatesPendingNextMonth($template->getAccount()),
+            static fn (array $entry) => $entry['template'] === $template,
+        ));
+        self::assertCount(1, $pending);
+        self::assertSame($sunday->modify('+1 day')->format('Y-m-d'), $pending[0]['nextDate']->format('Y-m-d'));
+
+        self::assertSame(1, $this->generator->duplicateMonthlyTemplatesToNextMonth([$template->getId()]));
+
+        $series = $this->findSeries($template);
+        self::assertSame('1', end($series)->getDate()->format('N'));
+        self::assertSame([], array_filter(
+            $this->generator->findMonthlyTemplatesPendingNextMonth($template->getAccount()),
+            static fn (array $entry) => $entry['template'] === $template,
+        ));
+    }
+
     /**
      * @return list<Transaction>
      */

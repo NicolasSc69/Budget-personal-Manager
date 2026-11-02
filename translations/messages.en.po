@@ -157,6 +157,27 @@ msgstr "Balance"
 msgid "Balance trend from %start% to %end%"
 msgstr "Balance trend from %start% to %end%"
 
+msgid "First"
+msgstr "First"
+
+msgid "Go to first page"
+msgstr "Go to first page"
+
+msgid "Go to last page"
+msgstr "Go to last page"
+
+msgid "Go to next page"
+msgstr "Go to next page"
+
+msgid "Go to previous page"
+msgstr "Go to previous page"
+
+msgid "Last"
+msgstr "Last"
+
+msgid "Pagination"
+msgstr "Pagination"
+
 msgid "Today"
 msgstr "Today"
 

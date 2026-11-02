@@ -1,17 +1,41 @@
+{% if totalCount is defined %}
+    <div class="text-center text-muted small mt-3">{{ shownCount }} / {{ totalCount }}</div>
+{% endif %}
 {% if totalPages > 1 %}
-    <nav class="mt-3">
-        <ul class="pagination justify-content-center mb-0">
-            <li class="page-item {{ currentPage <= 1 ? 'disabled' : '' }}">
-                <a class="page-link" href="{{ path(routeName, queryParams|default({})|merge({'page': currentPage - 1})) }}">{{ 'Previous'|trans }}</a>
-            </li>
-            {% for p in 1..totalPages %}
+    {# Drupal-style pager: « First ‹ Previous … 3 4 [5] 6 7 … Next › Last », with at most 5 page links centered on the current page. #}
+    {% set pagerWindow = 5 %}
+    {% set pagerStart = max(1, min(currentPage - (pagerWindow // 2), totalPages - pagerWindow + 1)) %}
+    {% set pagerEnd = min(totalPages, pagerStart + pagerWindow - 1) %}
+    {% set pagerParams = queryParams|default({}) %}
+    <nav class="mt-3" aria-label="{{ 'Pagination'|trans }}">
+        <ul class="pagination justify-content-center flex-wrap mb-0">
+            {% if currentPage > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ path(routeName, pagerParams|merge({'page': 1})) }}" title="{{ 'Go to first page'|trans }}">« {{ 'First'|trans }}</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="{{ path(routeName, pagerParams|merge({'page': currentPage - 1})) }}" title="{{ 'Go to previous page'|trans }}">‹ {{ 'Previous'|trans }}</a>
+                </li>
+            {% endif %}
+            {% if pagerStart > 1 %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% for p in pagerStart..pagerEnd %}
                 <li class="page-item {{ p == currentPage ? 'active' : '' }}">
-                    <a class="page-link" href="{{ path(routeName, queryParams|default({})|merge({'page': p})) }}">{{ p }}</a>
+                    <a class="page-link" href="{{ path(routeName, pagerParams|merge({'page': p})) }}"{% if p == currentPage %} aria-current="page"{% endif %}>{{ p }}</a>
                 </li>
             {% endfor %}
-            <li class="page-item {{ currentPage >= totalPages ? 'disabled' : '' }}">
-                <a class="page-link" href="{{ path(routeName, queryParams|default({})|merge({'page': currentPage + 1})) }}">{{ 'Next'|trans }}</a>
-            </li>
+            {% if pagerEnd < totalPages %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% if currentPage < totalPages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ path(routeName, pagerParams|merge({'page': currentPage + 1})) }}" title="{{ 'Go to next page'|trans }}">{{ 'Next'|trans }} ›</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="{{ path(routeName, pagerParams|merge({'page': totalPages})) }}" title="{{ 'Go to last page'|trans }}">{{ 'Last'|trans }} »</a>
+                </li>
+            {% endif %}
         </ul>
     </nav>
 {% endif %}
