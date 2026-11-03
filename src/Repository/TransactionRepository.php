@@ -426,4 +426,29 @@ class TransactionRepository extends ServiceEntityRepository
 
         return $count > 0;
     }
+
+    /**
+     * Recurring transactions (series templates and their occurrences) dated on a Sunday,
+     * oldest first. The day-of-week filter is applied in PHP since DQL has no portable
+     * day-of-week function.
+     *
+     * @return list<Transaction>
+     */
+    public function findRecurringOnSunday(?Account $account = null): array
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->andWhere('t.recurrence != :none OR t.recurrenceParent IS NOT NULL')
+            ->setParameter('none', Recurrence::NONE)
+            ->orderBy('t.date', 'ASC')
+            ->addOrderBy('t.id', 'ASC');
+
+        if (null !== $account) {
+            $qb->andWhere('t.account = :account')->setParameter('account', $account);
+        }
+
+        return array_values(array_filter(
+            $qb->getQuery()->getResult(),
+            static fn (Transaction $transaction): bool => '7' === $transaction->getDate()->format('N'),
+        ));
+    }
 }

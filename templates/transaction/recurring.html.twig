@@ -1,18 +1,40 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'Recurring transactions to duplicate'|trans }}{% endblock %}
+{% block title %}{{ 'Recurring transactions to duplicate for %month%'|trans({'%month%': next_month_name()}) }}{% endblock %}
 
 {% block body %}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="mb-2">
         <div class="w-100">
-            <h1 class="h3 w-100 mb-0">{{ 'Recurring transactions to duplicate'|trans }}</h1>
+            <h1 class="h3 w-100 mb-0">{{ 'Recurring transactions to duplicate for %month%'|trans({'%month%': next_month_name()}) }}</h1>
             {% if filterAccount %}
-                <p class="h3 mb-0"><small class="text-muted">· {{ filterAccount.label }}</small></p>
+                <p class="h3 mb-0"><small class="text-muted">{{ filterAccount.label }}</small></p>
             {% endif %}
         </div>
-        <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
-            <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
-        </a>
+    </div>
+
+    <div class="sticky-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex gap-2">
+            <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
+                <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+            </a>
+            {{ include('transaction/_recurring_actions.html.twig', {account: filterAccount, pendingCount: totalCount, sundayCount: sundayRecurringCount, current: 'duplicate', alignStart: true}) }}
+        </div>
+        {% if totalCount > 0 %}
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 w-100 pt-2 border-top">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="recurring-check-all">
+                <label class="form-check-label" for="recurring-check-all">{{ 'Check all / uncheck all'|trans }}</label>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-semibold amount-positive" id="recurring-total-amount-top">
+                    {{ 'Total of checked transactions: %amount%'|trans({'%amount%': '0,00 ' ~ currency_symbol()}) }}
+                </span>
+                <button type="submit" form="recurring-form" class="btn btn-primary">
+                    <i class="bi bi-copy"></i> {{ 'Duplicate selection to next month'|trans }}
+                </button>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <p class="text-muted small">
@@ -67,23 +89,8 @@
             </div>
         </div>
     {% else %}
-        <form method="post" action="{{ path('app_transaction_recurring_duplicate', filterAccount ? {'account': filterAccount.id} : {}) }}">
+        <form method="post" id="recurring-form" action="{{ path('app_transaction_recurring_duplicate', filterAccount ? {'account': filterAccount.id} : {}) }}">
             <input type="hidden" name="_token" value="{{ csrf_token('duplicate_recurring') }}">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="recurring-check-all">
-                    <label class="form-check-label" for="recurring-check-all">{{ 'Check all / uncheck all'|trans }}</label>
-                </div>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="fw-semibold amount-positive" id="recurring-total-amount-top">
-                        {{ 'Total of checked transactions: %amount%'|trans({'%amount%': '0,00 ' ~ currency_symbol()}) }}
-                    </span>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-copy"></i> {{ 'Duplicate selection to next month'|trans }}
-                    </button>
-                </div>
-            </div>
 
             {% for categoryName, entries in groups %}
                 <div class="card mb-3">

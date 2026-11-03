@@ -1,0 +1,35 @@
+{#
+    Dropdown grouping the recurring transactions pages, highlighted when something needs to be done.
+    Parameters: account (Account|null), pendingCount (int), sundayCount (int), current ('duplicate'|'sunday'|null), small (bool, optional), compact (bool, optional: icon and counter only), alignStart (bool, optional: open the menu towards the right)
+#}
+{% set accountParams = account ? {'account': account.id} : {} %}
+{% set todoCount = pendingCount + sundayCount %}
+{% set current = current ?? null %}
+{% set small = small ?? false %}
+{% set compact = compact ?? false %}
+{% set alignStart = alignStart ?? false %}
+<div class="dropdown{{ compact ? ' d-inline-block' }}">
+    <button type="button" class="btn{{ small ? ' btn-sm' }} {{ todoCount > 0 ? 'btn-warning' : 'btn-outline-secondary' }} dropdown-toggle d-inline-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false"{% if compact %} data-bs-popper-config='{"strategy":"fixed"}'{% endif %}
+            title="{{ todoCount > 0 ? 'Recurring transactions: %count% to handle'|trans({'%count%': todoCount}) : 'Recurring transactions: nothing to handle'|trans }}">
+        <i class="bi bi-arrow-repeat"></i>{% if not compact %} {{ 'Recurring transactions'|trans }}{% endif %}
+        {% if todoCount > 0 %}
+            <span class="badge rounded-pill text-bg-danger">{{ todoCount }}</span>
+        {% else %}
+            <i class="bi bi-check-circle text-success"></i>
+        {% endif %}
+    </button>
+    <ul class="dropdown-menu{{ alignStart ? '' : ' dropdown-menu-end' }}">
+        <li>
+            <a class="dropdown-item d-flex justify-content-between align-items-center gap-3{{ current == 'duplicate' ? ' active' }}" href="{{ path('app_transaction_recurring', accountParams) }}">
+                <span><i class="bi bi-copy me-1"></i> {{ 'Recurring transactions to duplicate for %month%'|trans({'%month%': next_month_name()}) }}</span>
+                <span class="badge rounded-pill {{ pendingCount > 0 ? 'text-bg-warning' : 'text-bg-secondary' }}">{{ pendingCount }}</span>
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item d-flex justify-content-between align-items-center gap-3{{ current == 'sunday' ? ' active' }}" href="{{ path('app_transaction_recurring_sunday', accountParams) }}">
+                <span><i class="bi bi-calendar-week me-1"></i> {{ 'Recurring transactions Sunday > Monday'|trans }}</span>
+                <span class="badge rounded-pill {{ sundayCount > 0 ? 'text-bg-warning' : 'text-bg-secondary' }}">{{ sundayCount }}</span>
+            </a>
+        </li>
+    </ul>
+</div>

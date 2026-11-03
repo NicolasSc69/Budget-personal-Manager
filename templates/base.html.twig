@@ -130,6 +130,20 @@
                     padding-top: .3rem;
                     padding-bottom: .3rem;
                 }
+
+                /* Toolbar kept visible right under the sticky navbar while scrolling. */
+                .sticky-toolbar {
+                    position: sticky;
+                    top: var(--navbar-height, 56px);
+                    z-index: 1010;
+                    background: var(--bs-body-bg);
+                    padding-top: .5rem;
+                    padding-bottom: .5rem;
+                    transition: box-shadow .2s ease;
+                }
+                .sticky-toolbar.is-stuck {
+                    box-shadow: 0 .5rem .5rem -.5rem rgba(0,0,0,.25);
+                }
             </style>
         {% endblock %}
     </head>
@@ -148,8 +162,14 @@
                                 <a class="nav-link" href="{{ path('app_dashboard_account', {'id': navAccount.id}) }}" data-account-nav="{{ account_nav_message(navAccount) }}">{{ 'Dashboard'|trans }}</a>
                             </li>
                         {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ path('app_transaction_index', navAccount ? {'account': navAccount.id} : {}) }}">{{ 'Transactions'|trans }}</a>
+                        {% set navAccountParams = navAccount ? {'account': navAccount.id} : {} %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ 'Transactions'|trans }}</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ path('app_transaction_index', navAccountParams) }}">{{ 'All transactions'|trans }}</a></li>
+                                <li><a class="dropdown-item" href="{{ path('app_transaction_recurring', navAccountParams) }}">{{ 'Recurring transactions to duplicate for %month%'|trans({'%month%': next_month_name()}) }}</a></li>
+                                <li><a class="dropdown-item" href="{{ path('app_transaction_recurring_sunday', navAccountParams) }}">{{ 'Recurring transactions Sunday > Monday'|trans }}</a></li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ path('app_category_index') }}">{{ 'Tags'|trans }}</a>
@@ -305,6 +325,30 @@
 
                 updateNavShadow();
                 window.addEventListener('scroll', updateNavShadow, { passive: true });
+
+                // Expose the navbar height so sticky toolbars stay right under it
+                // (it shrinks when scrolled and grows when the mobile menu is opened).
+                function updateNavHeight() {
+                    document.documentElement.style.setProperty('--navbar-height', nav.offsetHeight + 'px');
+                }
+                updateNavHeight();
+                if (typeof ResizeObserver === 'function') {
+                    new ResizeObserver(updateNavHeight).observe(nav);
+                } else {
+                    window.addEventListener('resize', updateNavHeight);
+                    nav.addEventListener('transitionend', updateNavHeight);
+                }
+
+                var toolbars = document.querySelectorAll('.sticky-toolbar');
+                function updateToolbarShadow() {
+                    toolbars.forEach(function (toolbar) {
+                        toolbar.classList.toggle('is-stuck', toolbar.getBoundingClientRect().top <= nav.offsetHeight + 1 && window.scrollY > 0);
+                    });
+                }
+                if (toolbars.length) {
+                    updateToolbarShadow();
+                    window.addEventListener('scroll', updateToolbarShadow, { passive: true });
+                }
             })();
 
             (function () {

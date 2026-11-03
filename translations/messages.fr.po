@@ -775,11 +775,11 @@ msgstr "Date de fin de récurrence"
 msgid "Recurring template: %recurrence%"
 msgstr "Modèle récurrent : %recurrence%"
 
-msgid "Recurring transactions to duplicate"
-msgstr "Opérations récurrentes à dupliquer"
+msgid "Recurring transactions to duplicate for %month%"
+msgstr "Opérations récurrentes à dupliquer pour %month%"
 
-msgid "Recurring transactions to duplicate (%count%)"
-msgstr "Opérations récurrentes à dupliquer (%count%)"
+msgid "Recurring transactions to duplicate for %month% (%count%)"
+msgstr "Opérations récurrentes à dupliquer pour %month% (%count%)"
 
 msgid "Redirecting to %account%"
 msgstr "Redirection vers %account%"
@@ -1170,3 +1170,57 @@ msgstr "Comptes courants"
 
 msgid "All accounts tab"
 msgstr "Tous"
+
+msgid "Recurring transactions falling on a Sunday"
+msgstr "Opérations récurrentes tombant un dimanche"
+
+msgid "Recurring transactions falling on a Sunday (%count%)"
+msgstr "Opérations récurrentes tombant un dimanche (%count%)"
+
+msgid "Recurring transactions dated on a Sunday. Check the ones to move to the following Monday."
+msgstr "Opérations récurrentes datées d'un dimanche. Cochez celles à décaler au lundi suivant."
+
+msgid "No recurring transaction falls on a Sunday."
+msgstr "Aucune opération récurrente ne tombe un dimanche."
+
+msgid "Checked transactions: %count%"
+msgstr "Opérations cochées : %count%"
+
+msgid "Move selection to Monday"
+msgstr "Décaler la sélection au lundi"
+
+msgid "Current date (Sunday)"
+msgstr "Date actuelle (dimanche)"
+
+msgid "New date (Monday)"
+msgstr "Nouvelle date (lundi)"
+
+msgid "Series template"
+msgstr "Modèle de la série"
+
+msgid "Moving the series template also moves the reference day of future occurrences."
+msgstr "Décaler le modèle de la série décale aussi le jour de référence des prochaines occurrences."
+
+msgid "%count% recurring transaction(s) moved to Monday."
+msgstr "%count% opération(s) récurrente(s) décalée(s) au lundi."
+
+msgid "All transactions"
+msgstr "Toutes les opérations"
+
+msgid "Recurring transactions Sunday > Monday"
+msgstr "Opérations récurrentes dimanche > lundi"
+
+msgid "Recurring transactions"
+msgstr "Opérations récurrentes"
+
+msgid "Recurring transactions: %count% to handle"
+msgstr "Opérations récurrentes : %count% à traiter"
+
+msgid "Recurring transactions: nothing to handle"
+msgstr "Opérations récurrentes : rien à traiter"
+
+msgid "Day of the month to check recurring transactions to duplicate"
+msgstr "Jour du mois de vérification des récurrences à dupliquer"
+
+msgid "The recurring transactions check day must be between 1 and 31."
+msgstr "Le jour de vérification des récurrences doit être compris entre 1 et 31."

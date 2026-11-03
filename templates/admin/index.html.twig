@@ -3,8 +3,11 @@
 {% block title %}{{ 'Administration'|trans }}{% endblock %}
 
 {% block body %}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="mb-2">
         <h1 class="h3 w-100 mb-0">{{ 'Administration'|trans }}</h1>
+    </div>
+
+    <div class="sticky-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <a href="{{ path('app_dashboard') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
         </a>
@@ -100,6 +103,10 @@
                         <option value="light" {{ theme == 'light' ? 'selected' : '' }}>{{ 'Light'|trans }}</option>
                         <option value="dark" {{ theme == 'dark' ? 'selected' : '' }}>{{ 'Dark'|trans }}</option>
                     </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small mb-1" for="recurring-check-day">{{ 'Day of the month to check recurring transactions to duplicate'|trans }}</label>
+                    <input type="number" id="recurring-check-day" name="recurring_check_day" value="{{ recurringCheckDay }}" min="1" max="31" class="form-control form-control-sm">
                 </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-sm btn-primary">{{ 'Save'|trans }}</button>

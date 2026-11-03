@@ -2,6 +2,8 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\AppSetting;
+use App\Repository\AppSettingRepository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -75,5 +77,41 @@ final class PageSmokeTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'application/pdf');
+    }
+
+    public function testAdminSettingsSavesTheRecurringCheckDay(): void
+    {
+        $client = static::createClient();
+        $settings = static::getContainer()->get(AppSettingRepository::class)->getSettings();
+        $original = [$settings->getItemsPerPage(), $settings->getTheme(), $settings->getRecurringCheckDay()];
+
+        try {
+            $crawler = $client->request('GET', '/admin');
+            self::assertSelectorExists('input[name="recurring_check_day"]');
+
+            $client->submit($crawler->filter('form[action$="/admin/settings"]')->form(['recurring_check_day' => '15']));
+            self::assertResponseRedirects('/admin');
+            self::assertSame(15, $this->reloadSettings()->getRecurringCheckDay());
+
+            $crawler = $client->request('GET', '/admin');
+            self::assertSelectorExists('input[name="recurring_check_day"][value="15"]');
+
+            $client->submit($crawler->filter('form[action$="/admin/settings"]')->form(['recurring_check_day' => '32']));
+            self::assertResponseRedirects('/admin');
+            self::assertSame(15, $this->reloadSettings()->getRecurringCheckDay(), 'An out-of-range check day must be rejected.');
+        } finally {
+            $settings = $this->reloadSettings();
+            [$itemsPerPage, $theme, $checkDay] = $original;
+            $settings->setItemsPerPage($itemsPerPage)->setTheme($theme)->setRecurringCheckDay($checkDay);
+            static::getContainer()->get('doctrine')->getManager()->flush();
+        }
+    }
+
+    private function reloadSettings(): AppSetting
+    {
+        $entityManager = static::getContainer()->get('doctrine')->getManager();
+        $entityManager->clear();
+
+        return static::getContainer()->get(AppSettingRepository::class)->getSettings();
     }
 }

@@ -9,11 +9,13 @@ use App\Service\CurrencyResolver;
 use App\Service\DatabaseBackupService;
 use App\Twig\AppExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AppExtensionTest extends TestCase
 {
-    private function createExtension(string $currency = 'EUR'): AppExtension
+    private function createExtension(string $currency = 'EUR', ?RequestStack $requestStack = null): AppExtension
     {
         $appSetting = (new AppSetting())->setCurrency($currency);
 
@@ -26,6 +28,7 @@ final class AppExtensionTest extends TestCase
             $appSettingRepository,
             new CurrencyResolver(),
             $this->createStub(TranslatorInterface::class),
+            $requestStack ?? new RequestStack(),
         );
     }
 
@@ -49,5 +52,18 @@ final class AppExtensionTest extends TestCase
     public function testFormatMoneyKeepsTheMinusSignForNegativeAmounts(): void
     {
         self::assertSame('-42,10 €', $this->createExtension('EUR')->formatMoney(-42.1));
+    }
+
+    public function testGetNextMonthNameUsesTheRequestLocale(): void
+    {
+        $request = new Request();
+        $request->setLocale('fr');
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $expected = (new \IntlDateFormatter('fr', \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, null, null, 'MMMM'))
+            ->format(new \DateTimeImmutable('first day of next month'));
+
+        self::assertSame($expected, $this->createExtension('EUR', $requestStack)->getNextMonthName());
     }
 }

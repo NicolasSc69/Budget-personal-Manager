@@ -36,15 +36,18 @@ final class AccountController extends AbstractController
 
         $balances = [];
         $pendingRecurringCounts = [];
+        $sundayRecurringCounts = [];
         foreach ($accounts as $account) {
             $balances[$account->getId()] = $transactionRepository->sumUntil($today, $account);
             $pendingRecurringCounts[$account->getId()] = count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account));
+            $sundayRecurringCounts[$account->getId()] = count($transactionRepository->findRecurringOnSunday($account));
         }
 
         return $this->render('account/index.html.twig', [
             'accounts' => $accounts,
             'balances' => $balances,
             'pendingRecurringCounts' => $pendingRecurringCounts,
+            'sundayRecurringCounts' => $sundayRecurringCounts,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'shownCount' => ($page - 1) * $itemsPerPage + count($accounts),

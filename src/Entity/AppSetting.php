@@ -32,6 +32,13 @@ class AppSetting
     #[Assert\Choice(choices: ['light', 'dark', 'auto'])]
     private string $theme = 'auto';
 
+    /**
+     * Day of the month from which recurring transactions are checked for duplication to next month.
+     */
+    #[ORM\Column(options: ['default' => 1])]
+    #[Assert\Range(min: 1, max: 31)]
+    private int $recurringCheckDay = 1;
+
     public function getId(): int
     {
         return $this->id;
@@ -93,6 +100,18 @@ class AppSetting
     public function setTheme(string $theme): static
     {
         $this->theme = $theme;
+
+        return $this;
+    }
+
+    public function getRecurringCheckDay(): int
+    {
+        return $this->recurringCheckDay;
+    }
+
+    public function setRecurringCheckDay(int $recurringCheckDay): static
+    {
+        $this->recurringCheckDay = $recurringCheckDay;
 
         return $this;
     }

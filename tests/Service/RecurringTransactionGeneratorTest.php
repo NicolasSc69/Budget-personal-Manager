@@ -7,6 +7,7 @@ use App\Entity\AccountType;
 use App\Entity\Category;
 use App\Entity\Transaction;
 use App\Enum\Recurrence;
+use App\Repository\AppSettingRepository;
 use App\Repository\TransactionRepository;
 use App\Service\RecurringTransactionGenerator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,6 +18,7 @@ final class RecurringTransactionGeneratorTest extends KernelTestCase
     private EntityManagerInterface $entityManager;
     private TransactionRepository $transactionRepository;
     private RecurringTransactionGenerator $generator;
+    private AppSettingRepository $appSettingRepository;
 
     protected function setUp(): void
     {
@@ -25,7 +27,10 @@ final class RecurringTransactionGeneratorTest extends KernelTestCase
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->transactionRepository = $this->entityManager->getRepository(Transaction::class);
         $this->generator = self::getContainer()->get(RecurringTransactionGenerator::class);
+        $this->appSettingRepository = self::getContainer()->get(AppSettingRepository::class);
         $this->entityManager->getConnection()->beginTransaction();
+        // Default check day, so the pending list doesn't depend on what the test database holds.
+        $this->setRecurringCheckDay(1);
     }
 
     protected function tearDown(): void
@@ -104,6 +109,48 @@ final class RecurringTransactionGeneratorTest extends KernelTestCase
             $this->generator->findMonthlyTemplatesPendingNextMonth($template->getAccount()),
             static fn (array $entry) => $entry['template'] === $template,
         ));
+    }
+
+    public function testPendingNextMonthIsListedFromTheCheckDay(): void
+    {
+        $template = $this->createMonthlyTemplate('-1 month');
+
+        $this->setRecurringCheckDay((int) (new \DateTimeImmutable('today'))->format('j'));
+        self::assertTrue($this->isPending($template));
+    }
+
+    public function testPendingNextMonthIsEmptyBeforeTheCheckDay(): void
+    {
+        $today = new \DateTimeImmutable('today');
+        if ($today->format('j') === $today->format('t')) {
+            self::markTestSkipped('On the last day of the month every check day is reached.');
+        }
+
+        $template = $this->createMonthlyTemplate('-1 month');
+
+        $this->setRecurringCheckDay((int) $today->format('j') + 1);
+        self::assertSame([], $this->generator->findMonthlyTemplatesPendingNextMonth($template->getAccount()));
+        self::assertSame(0, $this->generator->duplicateMonthlyTemplatesToNextMonth([$template->getId()]));
+
+        $this->setRecurringCheckDay(1);
+        self::assertTrue($this->isPending($template));
+    }
+
+    private function setRecurringCheckDay(int $day): void
+    {
+        $this->appSettingRepository->getSettings()->setRecurringCheckDay($day);
+        $this->entityManager->flush();
+    }
+
+    private function isPending(Transaction $template): bool
+    {
+        foreach ($this->generator->findMonthlyTemplatesPendingNextMonth($template->getAccount()) as $entry) {
+            if ($entry['template'] === $template) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

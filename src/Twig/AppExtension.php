@@ -7,6 +7,7 @@ use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Service\CurrencyResolver;
 use App\Service\DatabaseBackupService;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -20,6 +21,7 @@ class AppExtension extends AbstractExtension
         private readonly AppSettingRepository $appSettingRepository,
         private readonly CurrencyResolver $currencyResolver,
         private readonly TranslatorInterface $translator,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -31,6 +33,7 @@ class AppExtension extends AbstractExtension
             new TwigFunction('currency_symbol', [$this, 'getCurrencySymbol']),
             new TwigFunction('default_theme', [$this, 'getDefaultTheme']),
             new TwigFunction('account_nav_message', [$this, 'getAccountNavMessage']),
+            new TwigFunction('next_month_name', [$this, 'getNextMonthName']),
         ];
     }
 
@@ -72,5 +75,17 @@ class AppExtension extends AbstractExtension
         }
 
         return $this->translator->trans('Redirecting to %account%', ['%account%' => $label]);
+    }
+
+    /**
+     * Localized name of the month following the current one (e.g. "novembre" in October),
+     * i.e. the month recurring transactions get duplicated to.
+     */
+    public function getNextMonthName(): string
+    {
+        $locale = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
+        $formatter = new \IntlDateFormatter($locale, \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, null, null, 'MMMM');
+
+        return (string) $formatter->format(new \DateTimeImmutable('first day of next month'));
     }
 }

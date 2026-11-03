@@ -123,6 +123,7 @@ final class TransactionController extends AbstractController
             'filteredAmountSum' => $filteredAmountSum,
             'balanceDate' => $forecastService->formatDate($today),
             'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account)),
+            'sundayRecurringCount' => count($transactionRepository->findRecurringOnSunday($account)),
         ]);
     }
 
@@ -254,7 +255,7 @@ final class TransactionController extends AbstractController
     }
 
     #[Route('/recurring', name: 'app_transaction_recurring', methods: ['GET'])]
-    public function recurring(Request $request, AccountRepository $accountRepository, CategoryRepository $categoryRepository, RecurringTransactionGenerator $recurringTransactionGenerator): Response
+    public function recurring(Request $request, AccountRepository $accountRepository, CategoryRepository $categoryRepository, TransactionRepository $transactionRepository, RecurringTransactionGenerator $recurringTransactionGenerator): Response
     {
         $account = $request->query->get('account') ? $accountRepository->find($request->query->get('account')) : null;
 
@@ -265,13 +266,63 @@ final class TransactionController extends AbstractController
             $groups[$entry['template']->getCategory()->getFullName()][] = $entry;
         }
         ksort($groups, SORT_NATURAL | SORT_FLAG_CASE);
+        foreach ($groups as &$entries) {
+            usort($entries, static fn (array $a, array $b): int => $a['lastOccurrenceDate'] <=> $b['lastOccurrenceDate']);
+        }
+        unset($entries);
 
         return $this->render('transaction/recurring.html.twig', [
             'groups' => $groups,
             'filterAccount' => $account,
             'totalCount' => count($pending),
+            'sundayRecurringCount' => count($transactionRepository->findRecurringOnSunday($account)),
             'categories' => $categoryRepository->findAllOrderedByHierarchy(),
         ]);
+    }
+
+    #[Route('/recurring/sunday', name: 'app_transaction_recurring_sunday', methods: ['GET'])]
+    public function recurringOnSunday(Request $request, AccountRepository $accountRepository, TransactionRepository $transactionRepository, RecurringTransactionGenerator $recurringTransactionGenerator): Response
+    {
+        $account = $request->query->get('account') ? $accountRepository->find($request->query->get('account')) : null;
+
+        $transactions = $transactionRepository->findRecurringOnSunday($account);
+
+        $groups = [];
+        foreach ($transactions as $transaction) {
+            $groups[$transaction->getCategory()->getFullName()][] = $transaction;
+        }
+        ksort($groups, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $this->render('transaction/recurring_sunday.html.twig', [
+            'groups' => $groups,
+            'filterAccount' => $account,
+            'totalCount' => count($transactions),
+            'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account)),
+        ]);
+    }
+
+    #[Route('/recurring/sunday/shift', name: 'app_transaction_recurring_sunday_shift', methods: ['POST'])]
+    public function shiftRecurringOnSunday(Request $request, RecurringTransactionGenerator $recurringTransactionGenerator, TranslatorInterface $translator): Response
+    {
+        $accountId = $request->query->get('account');
+
+        if (!$this->isCsrfTokenValid('shift_recurring_sunday', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', $translator->trans('Invalid security token, please try again.'));
+
+            return $this->redirectToRoute('app_transaction_recurring_sunday', array_filter(['account' => $accountId]), Response::HTTP_SEE_OTHER);
+        }
+
+        $transactionIds = array_map('intval', $request->request->all('transactions'));
+        $shifted = $recurringTransactionGenerator->shiftSundayOccurrencesToMonday($transactionIds);
+
+        $this->addFlash(
+            $shifted > 0 ? 'success' : 'warning',
+            $shifted > 0
+                ? $translator->trans('%count% recurring transaction(s) moved to Monday.', ['%count%' => $shifted])
+                : $translator->trans('No transaction selected.')
+        );
+
+        return $this->redirectToRoute('app_transaction_recurring_sunday', array_filter(['account' => $accountId]), Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/recurring/duplicate', name: 'app_transaction_recurring_duplicate', methods: ['POST'])]

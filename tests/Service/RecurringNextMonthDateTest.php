@@ -52,4 +52,23 @@ final class RecurringNextMonthDateTest extends TestCase
             }
         }
     }
+
+    /**
+     * @return iterable<string, array{string, int, bool}>
+     */
+    public static function provideCheckDayCases(): iterable
+    {
+        yield 'default day 1 is always reached' => ['2026-11-01', 1, true];
+        yield 'before the check day' => ['2026-11-19', 20, false];
+        yield 'on the check day' => ['2026-11-20', 20, true];
+        yield 'after the check day' => ['2026-11-25', 20, true];
+        yield 'day 31 is clamped to the end of a shorter month' => ['2026-02-28', 31, true];
+        yield 'day 31 not reached before the end of the month' => ['2026-02-27', 31, false];
+    }
+
+    #[DataProvider('provideCheckDayCases')]
+    public function testIsCheckDayReached(string $today, int $checkDay, bool $expected): void
+    {
+        self::assertSame($expected, RecurringTransactionGenerator::isCheckDayReached(new \DateTimeImmutable($today), $checkDay));
+    }
 }

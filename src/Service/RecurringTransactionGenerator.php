@@ -6,6 +6,7 @@ use App\Entity\Account;
 use App\Entity\Category;
 use App\Entity\Transaction;
 use App\Enum\Recurrence;
+use App\Repository\AppSettingRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\TransactionRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,6 +19,7 @@ class RecurringTransactionGenerator
         private readonly TransactionRepository $transactionRepository,
         private readonly CategoryRepository $categoryRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly AppSettingRepository $appSettingRepository,
     ) {
     }
 
@@ -56,12 +58,17 @@ class RecurringTransactionGenerator
      * Recurring templates that don't yet have any occurrence falling within next
      * calendar month (relative to today). Only applies to monthly recurrences: the
      * "next month" check has no meaningful equivalent for quarterly/semiannual/yearly cadences.
+     * Nothing is pending before the check day of the month configured in the settings.
      *
      * @return list<array{template: Transaction, lastOccurrenceDate: \DateTimeImmutable, nextDate: \DateTimeImmutable}>
      */
     public function findMonthlyTemplatesPendingNextMonth(?Account $account = null): array
     {
         $today = new \DateTimeImmutable('today');
+
+        if (!self::isCheckDayReached($today, $this->appSettingRepository->findExistingSettings()?->getRecurringCheckDay() ?? 1)) {
+            return [];
+        }
 
         $pending = [];
 
@@ -130,6 +137,36 @@ class RecurringTransactionGenerator
         }
 
         return $duplicated;
+    }
+
+    /**
+     * Moves the given recurring transactions from Sunday to the following Monday. Ids that
+     * are no longer a recurring transaction dated on a Sunday are ignored.
+     *
+     * @param list<int> $transactionIds
+     */
+    public function shiftSundayOccurrencesToMonday(array $transactionIds): int
+    {
+        $shifted = 0;
+
+        foreach ($this->transactionRepository->findRecurringOnSunday() as $transaction) {
+            if (!in_array($transaction->getId(), $transactionIds, true)) {
+                continue;
+            }
+
+            $monday = self::shiftSundayToMonday($transaction->getDate());
+            $transaction->setDate($monday);
+            if ($transaction->isDeferredDebit()) {
+                $transaction->setDebitDate(Transaction::computeDeferredDebitDate($monday));
+            }
+            ++$shifted;
+        }
+
+        if ($shifted > 0) {
+            $this->entityManager->flush();
+        }
+
+        return $shifted;
     }
 
     /**
@@ -249,6 +286,15 @@ class RecurringTransactionGenerator
             'windowStart' => $currentMonthDate >= $nextMonthStart ? $nextMonthStart->modify('+1 day') : $nextMonthStart,
             'windowEnd' => max($monthAfterStart, $nextDate->modify('+1 day')),
         ];
+    }
+
+    /**
+     * Whether $today is on or after the check day of its month (clamped to the month's last day,
+     * so a check day of 31 still triggers on the last day of shorter months).
+     */
+    public static function isCheckDayReached(\DateTimeImmutable $today, int $checkDay): bool
+    {
+        return (int) $today->format('j') >= min(max($checkDay, 1), (int) $today->format('t'));
     }
 
     /**

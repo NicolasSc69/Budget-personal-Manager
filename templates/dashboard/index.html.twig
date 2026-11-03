@@ -70,10 +70,8 @@
                                                                         <a href="{{ entry.url }}" class="text-decoration-none" data-account-nav="{{ account_nav_message(entry.account) }}">
                                                                             {{ entry.account.label }}{% if personGroup.showPerson and entry.account.person %} ({{ entry.account.person.name }}){% endif %}
                                                                         </a>
-                                                                        {% if entry.pendingRecurringCount > 0 %}
-                                                                            <a href="{{ path('app_transaction_recurring', {'account': entry.account.id}) }}" class="btn btn-sm btn-outline-warning ms-2" title="{{ 'Recurring transactions to duplicate'|trans }}">
-                                                                                <i class="bi bi-arrow-repeat"></i> {{ entry.pendingRecurringCount }}
-                                                                            </a>
+                                                                        {% if entry.pendingRecurringCount + entry.sundayRecurringCount > 0 %}
+                                                                            <span class="ms-2">{{ include('transaction/_recurring_actions.html.twig', {account: entry.account, pendingCount: entry.pendingRecurringCount, sundayCount: entry.sundayRecurringCount, small: true, compact: true}) }}</span>
                                                                         {% endif %}
                                                                     </td>
                                                                     <td>
@@ -170,9 +168,7 @@
                     <a href="{{ path('app_transaction_index', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-outline-secondary">
                         {{ 'View all transactions'|trans }}
                     </a>
-                    <a href="{{ path('app_transaction_recurring', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-outline-warning">
-                        <i class="bi bi-arrow-repeat"></i> {{ 'Recurring transactions to duplicate (%count%)'|trans({'%count%': pendingRecurringCount}) }}
-                    </a>
+                    {{ include('transaction/_recurring_actions.html.twig', {account: currentAccount, pendingCount: pendingRecurringCount, sundayCount: sundayRecurringCount, small: true}) }}
                 </div>
             </div>
             <div class="row mb-3">

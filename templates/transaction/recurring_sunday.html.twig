@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Recurring transactions falling on a Sunday'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="mb-2">
+        <div class="w-100">
+            <h1 class="h3 w-100 mb-0">{{ 'Recurring transactions falling on a Sunday'|trans }}</h1>
+            {% if filterAccount %}
+                <p class="h3 mb-0"><small class="text-muted">{{ filterAccount.label }}</small></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="sticky-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex gap-2">
+            <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
+                <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
+            </a>
+            {{ include('transaction/_recurring_actions.html.twig', {account: filterAccount, pendingCount: pendingRecurringCount, sundayCount: totalCount, current: 'sunday', alignStart: true}) }}
+        </div>
+        {% if totalCount > 0 %}
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 w-100 pt-2 border-top">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="sunday-check-all">
+                <label class="form-check-label" for="sunday-check-all">{{ 'Check all / uncheck all'|trans }}</label>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-semibold" id="sunday-selected-count">
+                    {{ 'Checked transactions: %count%'|trans({'%count%': 0}) }}
+                </span>
+                <button type="submit" form="recurring-sunday-form" class="btn btn-primary">
+                    <i class="bi bi-calendar-check"></i> {{ 'Move selection to Monday'|trans }}
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <p class="text-muted small">
+        {{ 'Recurring transactions dated on a Sunday. Check the ones to move to the following Monday.'|trans }}
+    </p>
+
+    {% if totalCount == 0 %}
+        <div class="card">
+            <div class="card-body text-center text-muted py-4">
+                {{ 'No recurring transaction falls on a Sunday.'|trans }}
+            </div>
+        </div>
+    {% else %}
+        <form method="post" id="recurring-sunday-form" action="{{ path('app_transaction_recurring_sunday_shift', filterAccount ? {'account': filterAccount.id} : {}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('shift_recurring_sunday') }}">
+
+            {% for categoryName, transactions in groups %}
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">{{ categoryName }}</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>{{ 'Title'|trans }}</th>
+                                    <th>{{ 'Current date (Sunday)'|trans }}</th>
+                                    <th>{{ 'New date (Monday)'|trans }}</th>
+                                    <th>{{ 'Account'|trans }}</th>
+                                    <th class="text-end">{{ 'Amount'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for transaction in transactions %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input sunday-checkbox" name="transactions[]" value="{{ transaction.id }}">
+                                    </td>
+                                    <td>
+                                        {{ transaction.title ?: '—' }}
+                                        {% if transaction.recurrenceParent is null %}
+                                            <span class="badge text-bg-secondary ms-1" title="{{ 'Moving the series template also moves the reference day of future occurrences.'|trans }}">{{ 'Series template'|trans }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ transaction.date|date('d/m/Y') }}</td>
+                                    <td>{{ transaction.date|date_modify('+1 day')|date('d/m/Y') }}</td>
+                                    <td>
+                                        {{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}
+                                    </td>
+                                    <td class="text-end {{ transaction.amount < 0 ? 'amount-negative' : 'amount-positive' }}">
+                                        {{ transaction.amount|money }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+    (function () {
+        const countLabel = {{ 'Checked transactions: %count%'|trans|json_encode|raw }};
+        const checkAll = document.getElementById('sunday-check-all');
+        const checkboxes = document.querySelectorAll('.sunday-checkbox');
+        const countEl = document.getElementById('sunday-selected-count');
+
+        function updateCount() {
+            if (!countEl) {
+                return;
+            }
+
+            const checked = Array.from(checkboxes).filter((checkbox) => checkbox.checked).length;
+            countEl.textContent = countLabel.replace('%count%', checked);
+        }
+
+        if (checkAll) {
+            checkAll.addEventListener('change', () => {
+                checkboxes.forEach((checkbox) => {
+                    checkbox.checked = checkAll.checked;
+                });
+                updateCount();
+            });
+        }
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', updateCount);
+        });
+
+        updateCount();
+    })();
+    </script>
+{% endblock %}

@@ -3,8 +3,11 @@
 {% block title %}{{ 'Accounts'|trans }}{% endblock %}
 
 {% block body %}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="mb-2">
         <h1 class="h3 w-100 mb-0">{{ 'Accounts'|trans }}</h1>
+    </div>
+
+    <div class="sticky-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="d-flex gap-2">
             <a href="{{ path('app_dashboard') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
@@ -24,7 +27,7 @@
                         <th>{{ 'Type'|trans }}</th>
                         <th>{{ 'Person'|trans }}</th>
                         <th class="text-end">{{ 'Balance'|trans }}</th>
-                        <th class="text-center">{{ 'Recurring transactions to duplicate'|trans }}</th>
+                        <th class="text-center">{{ 'Recurring transactions'|trans }}</th>
                         <th class="text-end">{{ 'Actions'|trans }}</th>
                     </tr>
                 </thead>
@@ -46,13 +49,7 @@
                             {{ balances[account.id]|money }}
                         </td>
                         <td class="text-center">
-                            {% if pendingRecurringCounts[account.id] > 0 %}
-                                <a href="{{ path('app_transaction_recurring', {'account': account.id}) }}" class="btn btn-sm btn-outline-warning">
-                                    {{ pendingRecurringCounts[account.id] }}
-                                </a>
-                            {% else %}
-                                <span class="text-muted">0</span>
-                            {% endif %}
+                            {{ include('transaction/_recurring_actions.html.twig', {account: account, pendingCount: pendingRecurringCounts[account.id], sundayCount: sundayRecurringCounts[account.id], small: true, compact: true}) }}
                         </td>
                         <td class="text-end text-nowrap">
                             <a href="{{ path('app_account_show', {'id': account.id}) }}" class="btn btn-sm btn-outline-secondary" data-ajax-modal data-title="{{ 'Account details'|trans }}">{{ 'View'|trans }}</a>

@@ -48,6 +48,7 @@ final class AdminController extends AbstractController
             'transactionCount' => $transactionRepository->count([]),
             'itemsPerPage' => $appSettingRepository->getSettings()->getItemsPerPage(),
             'theme' => $appSettingRepository->getSettings()->getTheme(),
+            'recurringCheckDay' => $appSettingRepository->getSettings()->getRecurringCheckDay(),
             'backupDirectory' => $appSettingRepository->getSettings()->getBackupDirectory(),
             'backupFileExists' => $backupFileExists,
             'backupFileModifiedAt' => $backupFileExists ? $this->fileModifiedAt($backupFilePath) : null,
@@ -81,9 +82,18 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index');
         }
 
+        $recurringCheckDay = (int) $request->request->get('recurring_check_day', 1);
+
+        if ($recurringCheckDay < 1 || $recurringCheckDay > 31) {
+            $this->addFlash('danger', $translator->trans('The recurring transactions check day must be between 1 and 31.'));
+
+            return $this->redirectToRoute('app_admin_index');
+        }
+
         $settings = $appSettingRepository->getSettings();
         $settings->setItemsPerPage($itemsPerPage);
         $settings->setTheme($theme);
+        $settings->setRecurringCheckDay($recurringCheckDay);
         $entityManager->flush();
 
         $this->addFlash('success', $translator->trans('Settings have been updated.'));
