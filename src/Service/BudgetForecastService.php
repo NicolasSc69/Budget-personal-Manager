@@ -23,8 +23,9 @@ class BudgetForecastService
         $untilKey = $until->format('Y-m');
 
         $monthlyBalances = [];
-        $monthlyIncome = [];
-        $monthlyExpense = [];
+        // Net amount per month and per category: a refund offsets its category's expense instead of
+        // counting as income (same rule as getCategoryBreakdown()).
+        $monthlyCategoryNet = [];
         $balance = $this->transactionRepository->getInitialBalanceOffset($account);
         $lastBalanceBeforeWindow = $balance;
 
@@ -43,8 +44,16 @@ class BudgetForecastService
                 continue;
             }
 
-            $monthlyIncome[$key] = ($monthlyIncome[$key] ?? 0.0) + max($amount, 0.0);
-            $monthlyExpense[$key] = ($monthlyExpense[$key] ?? 0.0) + max(-$amount, 0.0);
+            $categoryId = $transaction->getCategory()?->getId() ?? 0;
+            $monthlyCategoryNet[$key][$categoryId] = ($monthlyCategoryNet[$key][$categoryId] ?? 0.0) + $amount;
+        }
+
+        $monthlyIncome = [];
+        $monthlyExpense = [];
+        foreach ($monthlyCategoryNet as $key => $netByCategory) {
+            $netByCategory = array_map(static fn (float $net) => round($net, 2), $netByCategory);
+            $monthlyIncome[$key] = array_sum(array_filter($netByCategory, static fn (float $net) => $net > 0));
+            $monthlyExpense[$key] = -array_sum(array_filter($netByCategory, static fn (float $net) => $net < 0));
         }
 
         $months = [];
@@ -156,7 +165,10 @@ class BudgetForecastService
     {
         $entries = [];
         foreach ($this->transactionRepository->sumByCategorySince($since, $account, $until) as $row) {
-            $total = 'income' === $type ? (float) $row['incomeTotal'] : abs((float) $row['expenseTotal']);
+            // Net per category: a refund reduces its category's expense instead of being counted as income,
+            // so the amount matches the sum shown on the filtered transaction list.
+            $net = round((float) $row['netTotal'], 2);
+            $total = 'income' === $type ? $net : -$net;
 
             if ($total <= 0) {
                 continue;

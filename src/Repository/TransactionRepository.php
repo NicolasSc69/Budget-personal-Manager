@@ -37,15 +37,17 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return array<int, array{category: Category, expenseTotal: float, incomeTotal: float}>
+     * Net amount (sum of signed amounts, so refunds offset expenses) of each category's
+     * own transactions over the period.
+     *
+     * @return array<int, array{category: Category, netTotal: float}>
      */
     public function sumByCategorySince(\DateTimeImmutable $since, ?Account $account = null, ?\DateTimeImmutable $until = null): array
     {
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select(
                 'c AS category',
-                'SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END) AS expenseTotal',
-                'SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END) AS incomeTotal'
+                'SUM(t.amount) AS netTotal'
             )
             ->from(Category::class, 'c')
             ->join('c.transactions', 't')
@@ -300,12 +302,12 @@ class TransactionRepository extends ServiceEntityRepository
 
     public function findEarliestDate(?Account $account = null): ?\DateTimeImmutable
     {
-        return $this->findAggregateDate('MIN(t.date)', $account);
+        return $this->findAggregateDate('MIN('.self::EFFECTIVE_DATE.')', $account);
     }
 
     public function findLatestDate(?Account $account = null): ?\DateTimeImmutable
     {
-        return $this->findAggregateDate('MAX(t.date)', $account);
+        return $this->findAggregateDate('MAX('.self::EFFECTIVE_DATE.')', $account);
     }
 
     private function findAggregateDate(string $select, ?Account $account): ?\DateTimeImmutable

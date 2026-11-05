@@ -111,10 +111,12 @@ class DashboardController extends AbstractController
             }
         }
 
-        $addCategoryUrl = function (array $entry) use ($account) {
+        $addCategoryUrl = function (array $entry) use ($account, $categoryPeriodStart, $categoryPeriodEnd) {
             $entry['url'] = $this->generateUrl('app_transaction_index', array_filter([
                 'account' => $account?->getId(),
                 'category' => $entry['categoryId'],
+                'date_from' => $categoryPeriodStart->format('Y-m-d'),
+                'date_to' => $categoryPeriodEnd->format('Y-m-d'),
             ]));
 
             return $entry;
@@ -157,7 +159,8 @@ class DashboardController extends AbstractController
      * - for a savings account, show the whole current year (January 1st to December 31st);
      * - if the account's whole history spans less than 365 days, show it in full (first to last operation),
      *   without padding into an empty future;
-     * - otherwise, show a 365-day window centered on the midpoint between the first and last operation.
+     * - otherwise, show a 365-day window centered on today, shifted if needed so it stays within
+     *   the first and last operation (no empty padding before the first or after the last one).
      *
      * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable}
      */
@@ -180,7 +183,9 @@ class DashboardController extends AbstractController
             return [$firstDate, $lastDate];
         }
 
-        $center = $firstDate->modify('+'.intdiv($historySpanDays, 2).' days');
+        $earliestCenter = $firstDate->modify('+182 days');
+        $latestCenter = $lastDate->modify('-183 days');
+        $center = max($earliestCenter, min($today, $latestCenter));
 
         return [$center->modify('-182 days'), $center->modify('+183 days')];
     }

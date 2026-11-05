@@ -480,7 +480,8 @@
             }
             // Twig's |filter keeps the original keys, so json_encode may give an object instead of an array.
             const ids = Object.values(JSON.parse(personPane.dataset.accountIds)).map(Number);
-            const indexes = chartData.accountIds.map((id, i) => (ids.includes(id) ? i : -1)).filter((i) => i >= 0);
+            // A doughnut draws |value|, so an overdrawn account would look like a positive share: only positive balances are charted.
+            const indexes = chartData.accountIds.map((id, i) => (ids.includes(id) && chartData.accountBalances[i] > 0 ? i : -1)).filter((i) => i >= 0);
             const dataset = accountsChart.data.datasets[0];
             visibleAccountLabels.splice(0, visibleAccountLabels.length, ...indexes.map((i) => chartData.accountLabels[i]));
             visibleAccountUrls.splice(0, visibleAccountUrls.length, ...indexes.map((i) => chartData.accountUrls[i]));
