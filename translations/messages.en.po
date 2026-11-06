@@ -1224,3 +1224,6 @@ msgstr "Day of the month to check recurring transactions to duplicate"
 
 msgid "The recurring transactions check day must be between 1 and 31."
 msgstr "The recurring transactions check day must be between 1 and 31."
+
+msgid "Loading in progress"
+msgstr "Loading in progress"

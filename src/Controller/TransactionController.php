@@ -9,6 +9,7 @@ use App\Form\TransactionType;
 use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Repository\CategoryRepository;
+use App\Repository\PersonRepository;
 use App\Repository\TransactionRepository;
 use App\Service\BudgetForecastService;
 use App\Service\RecurringTransactionGenerator;
@@ -34,10 +35,11 @@ final class TransactionController extends AbstractController
         CategoryRepository $categoryRepository,
         AppSettingRepository $appSettingRepository,
         BudgetForecastService $forecastService,
+        PersonRepository $personRepository,
     ): Response {
         $recurringTransactionGenerator->generateDueOccurrences();
 
-        $filters = $this->parseFilters($request, $accountRepository, $categoryRepository);
+        $filters = $this->parseFilters($request, $accountRepository, $categoryRepository, $personRepository);
         $account = $filters['account'];
         $category = $filters['category'];
         $dateFromRaw = $filters['dateFromRaw'];
@@ -53,17 +55,18 @@ final class TransactionController extends AbstractController
         $currentMonthOnly = $filters['currentMonthOnly'];
         $deferredDebitOnly = $filters['deferredDebitOnly'];
         $chequeOnly = $filters['chequeOnly'];
+        $person = $filters['person'];
 
         $sort = $request->query->get('sort', 'id');
         $direction = 'asc' === strtolower((string) $request->query->get('direction', 'desc')) ? 'asc' : 'desc';
 
         $itemsPerPage = $appSettingRepository->getSettings()->getItemsPerPage();
-        $totalTransactions = $transactionRepository->countFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly);
+        $totalTransactions = $transactionRepository->countFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly, $person);
         $totalPages = max(1, (int) ceil($totalTransactions / $itemsPerPage));
         $page = min(max(1, (int) $request->query->get('page', 1)), $totalPages);
 
-        $transactions = $transactionRepository->findFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $sort, $direction, $itemsPerPage, ($page - 1) * $itemsPerPage, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly);
-        $filteredAmountSum = $transactionRepository->sumFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, excludeForecastExcluded: $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
+        $transactions = $transactionRepository->findFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $sort, $direction, $itemsPerPage, ($page - 1) * $itemsPerPage, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly, $person);
+        $filteredAmountSum = $transactionRepository->sumFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, excludeForecastExcluded: $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly, person: $person);
 
         $allAccounts = $accountRepository->findAllOrderedByLabel();
 
@@ -80,6 +83,7 @@ final class TransactionController extends AbstractController
 
         $queryParams = array_filter([
             'account' => $account?->getId(),
+            'person' => $person?->getId(),
             'category' => $category?->getId(),
             'date_from' => $dateFromRaw,
             'date_to' => $dateToRaw,
@@ -97,6 +101,7 @@ final class TransactionController extends AbstractController
         return $this->render('transaction/index.html.twig', [
             'transactions' => $transactions,
             'filterAccount' => $account,
+            'filterPerson' => $person,
             'filterCategory' => $category,
             'filterDateFrom' => $dateFromRaw,
             'filterDateTo' => $dateToRaw,
@@ -108,6 +113,7 @@ final class TransactionController extends AbstractController
             'filterDeferredDebitOnly' => $deferredDebitOnly,
             'filterChequeOnly' => $chequeOnly,
             'accounts' => $allAccounts,
+            'persons' => $personRepository->findBy([], ['name' => 'ASC']),
             'categories' => $categoryRepository->findAllOrderedByHierarchy(),
             'sort' => $sort,
             'direction' => $direction,
@@ -134,8 +140,9 @@ final class TransactionController extends AbstractController
         AccountRepository $accountRepository,
         CategoryRepository $categoryRepository,
         BudgetForecastService $forecastService,
+        PersonRepository $personRepository,
     ): Response {
-        $filters = $this->parseFilters($request, $accountRepository, $categoryRepository);
+        $filters = $this->parseFilters($request, $accountRepository, $categoryRepository, $personRepository);
         $account = $filters['account'];
 
         $today = new \DateTimeImmutable('today');
@@ -161,6 +168,7 @@ final class TransactionController extends AbstractController
             $filters['currentMonthOnly'],
             $filters['deferredDebitOnly'],
             $filters['chequeOnly'],
+            $filters['person'],
         );
 
         $totalAmount = $transactionRepository->sumFiltered(
@@ -176,12 +184,14 @@ final class TransactionController extends AbstractController
             excludeForecastExcluded: $filters['currentMonthOnly'],
             deferredDebitOnly: $filters['deferredDebitOnly'],
             chequeOnly: $filters['chequeOnly'],
+            person: $filters['person'],
         );
 
         $html = $this->renderView('transaction/_export_pdf.html.twig', [
             'transactions' => $transactions,
             'totalAmount' => $totalAmount,
             'filterAccount' => $filters['account'],
+            'filterPerson' => $filters['person'],
             'filterCategory' => $filters['category'],
             'filterDateFrom' => $filters['dateFromRaw'],
             'filterDateTo' => $filters['dateToRaw'],
@@ -216,10 +226,11 @@ final class TransactionController extends AbstractController
     }
 
     /**
-     * @return array{account: ?\App\Entity\Account, category: ?\App\Entity\Category, dateFrom: ?\DateTimeImmutable, dateFromRaw: ?string, dateTo: ?\DateTimeImmutable, dateToRaw: ?string, amountMin: ?float, amountMinRaw: ?string, amountMax: ?float, amountMaxRaw: ?string, search: ?string, upcomingOnly: bool, currentMonthOnly: bool, deferredDebitOnly: bool, chequeOnly: bool}
+     * @return array{account: ?\App\Entity\Account, category: ?\App\Entity\Category, dateFrom: ?\DateTimeImmutable, dateFromRaw: ?string, dateTo: ?\DateTimeImmutable, dateToRaw: ?string, amountMin: ?float, amountMinRaw: ?string, amountMax: ?float, amountMaxRaw: ?string, search: ?string, upcomingOnly: bool, currentMonthOnly: bool, deferredDebitOnly: bool, chequeOnly: bool, person: ?\App\Entity\Person}
      */
-    private function parseFilters(Request $request, AccountRepository $accountRepository, CategoryRepository $categoryRepository): array
+    private function parseFilters(Request $request, AccountRepository $accountRepository, CategoryRepository $categoryRepository, PersonRepository $personRepository): array
     {
+        $person = $request->query->get('person') ? $personRepository->find($request->query->get('person')) : null;
         $account = $request->query->get('account') ? $accountRepository->find($request->query->get('account')) : null;
         $category = $request->query->get('category') ? $categoryRepository->find($request->query->get('category')) : null;
 
@@ -251,6 +262,7 @@ final class TransactionController extends AbstractController
             'currentMonthOnly' => null !== $request->query->get('current_month'),
             'deferredDebitOnly' => null !== $request->query->get('deferred_debit'),
             'chequeOnly' => null !== $request->query->get('cheque'),
+            'person' => $person,
         ];
     }
 

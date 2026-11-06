@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Account;
 use App\Entity\Category;
+use App\Entity\Person;
 use App\Entity\Transaction;
 use App\Enum\Recurrence;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -93,6 +94,7 @@ class TransactionRepository extends ServiceEntityRepository
         bool $byEffectiveDate = false,
         bool $deferredDebitOnly = false,
         bool $chequeOnly = false,
+        ?Person $person = null,
     ): \Doctrine\ORM\QueryBuilder {
         $dateExpr = $byEffectiveDate ? self::EFFECTIVE_DATE : 't.date';
         $qb = $this->createQueryBuilder('t')
@@ -101,6 +103,10 @@ class TransactionRepository extends ServiceEntityRepository
 
         if (null !== $account) {
             $qb->andWhere('t.account = :account')->setParameter('account', $account);
+        }
+
+        if (null !== $person) {
+            $qb->andWhere('a.person = :person')->setParameter('person', $person);
         }
 
         if (null !== $category) {
@@ -170,8 +176,9 @@ class TransactionRepository extends ServiceEntityRepository
         bool $currentMonthOnly = false,
         bool $deferredDebitOnly = false,
         bool $chequeOnly = false,
+        ?Person $person = null,
     ): array {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly, person: $person);
 
         $sortExpr = self::SORTABLE_FIELDS[$sortField] ?? self::SORTABLE_FIELDS['date'];
         $direction = 'asc' === strtolower($sortDirection) ? 'ASC' : 'DESC';
@@ -211,8 +218,9 @@ class TransactionRepository extends ServiceEntityRepository
         bool $currentMonthOnly = false,
         bool $deferredDebitOnly = false,
         bool $chequeOnly = false,
+        ?Person $person = null,
     ): array {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly, person: $person);
 
         $qb->orderBy('c.name', 'ASC')
             ->addOrderBy('t.title', 'ASC')
@@ -234,8 +242,9 @@ class TransactionRepository extends ServiceEntityRepository
         bool $currentMonthOnly = false,
         bool $deferredDebitOnly = false,
         bool $chequeOnly = false,
+        ?Person $person = null,
     ): int {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly, person: $person);
 
         return (int) $qb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
     }
@@ -254,8 +263,9 @@ class TransactionRepository extends ServiceEntityRepository
         bool $byEffectiveDate = false,
         bool $deferredDebitOnly = false,
         bool $chequeOnly = false,
+        ?Person $person = null,
     ): float {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded, $byEffectiveDate, $deferredDebitOnly, $chequeOnly);
+        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded, $byEffectiveDate, $deferredDebitOnly, $chequeOnly, $person);
 
         $total = $qb->select('SUM(t.amount)')->getQuery()->getSingleScalarResult();
 

@@ -1,26 +1,117 @@
-<div id="account-nav-overlay" class="d-none position-fixed top-0 start-0 w-100 h-100 flex-column justify-content-center align-items-center bg-body" style="z-index: 2000;">
-    <span class="spinner-border" role="status"></span>
+<div id="account-nav-overlay" class="d-none position-fixed top-0 start-0 w-100 h-100 flex-column justify-content-center align-items-center bg-body" style="z-index: 2000;" role="status" aria-live="polite">
+    <span class="spinner-border" aria-hidden="true"></span>
     <div id="account-nav-overlay-message" class="mt-3 fs-5 text-body"></div>
+    <div class="progress mt-3" style="width: min(320px, 80vw); height: 0.5rem;" role="progressbar" aria-label="{{ 'Loading in progress'|trans }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="account-nav-overlay-bar" class="progress-bar" style="width: 0%; transition: width 0.3s ease;"></div>
+    </div>
+    <div id="account-nav-overlay-percent" class="mt-1 small text-body-secondary">0 %</div>
 </div>
 
 <script>
+// Full screen loader shown while the browser waits for the next page: when switching account
+// (window.showAccountNavOverlay or [data-account-nav]) and on any regular navigation (internal
+// link click or non ajax form submit). The server gives no real progress, so the bar creeps
+// asymptotically towards 90 %, the progress is handed over to the next page through
+// sessionStorage, and that page completes it to 100 % once fully loaded.
+// Opt out on a link / form (e.g. file downloads) with [data-no-page-loader].
 (function () {
     const overlay = document.getElementById('account-nav-overlay');
     const messageEl = document.getElementById('account-nav-overlay-message');
+    const progressEl = overlay ? overlay.querySelector('.progress') : null;
+    const barEl = document.getElementById('account-nav-overlay-bar');
+    const percentEl = document.getElementById('account-nav-overlay-percent');
 
-    if (!overlay || !messageEl) {
+    if (!overlay || !messageEl || !barEl) {
         return;
     }
 
-    window.showAccountNavOverlay = function (message) {
-        messageEl.textContent = message;
+    const STORAGE_KEY = 'pageLoaderProgress';
+    const SHOW_DELAY = 250; // ms: fast pages never show the loader at all
+    const DEFAULT_MESSAGE = {{ 'Loading in progress'|trans|json_encode|raw }};
+
+    let progress = 0;
+    let timer = null;
+    let showTimeout = null;
+
+    function setProgress(value) {
+        progress = Math.max(0, Math.min(100, value));
+        const rounded = Math.round(progress);
+        barEl.style.width = progress + '%';
+        progressEl.setAttribute('aria-valuenow', rounded);
+        percentEl.textContent = rounded + ' %';
+    }
+
+    function startCreeping() {
+        clearInterval(timer);
+        timer = setInterval(function () {
+            // Slows down as it gets closer to 90 %, never reaches it on its own.
+            setProgress(progress + (90 - progress) * 0.06);
+            try { sessionStorage.setItem(STORAGE_KEY, String(progress)); } catch (e) {}
+        }, 200);
+    }
+
+    function display(message, startAt) {
+        clearTimeout(showTimeout);
+        messageEl.textContent = message || DEFAULT_MESSAGE;
         overlay.classList.remove('d-none');
         overlay.classList.add('d-flex');
-    };
+        setProgress(startAt || 0);
+        try { sessionStorage.setItem(STORAGE_KEY, String(progress)); } catch (e) {}
+        startCreeping();
+    }
 
     function hideOverlay() {
+        clearTimeout(showTimeout);
+        clearInterval(timer);
         overlay.classList.add('d-none');
         overlay.classList.remove('d-flex');
+        setProgress(0);
+        try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    }
+
+    window.showAccountNavOverlay = function (message) {
+        display(message, 5);
+    };
+
+    window.showPageLoader = function (message) {
+        clearTimeout(showTimeout);
+        showTimeout = setTimeout(function () {
+            display(message, 5);
+        }, SHOW_DELAY);
+    };
+
+    window.hidePageLoader = hideOverlay;
+
+    // Arriving on a page that was loading behind the overlay: keep showing it at the reached
+    // progress, then complete the bar to 100 % once everything (charts, images...) is loaded.
+    let inherited = null;
+    try { inherited = sessionStorage.getItem(STORAGE_KEY); } catch (e) {}
+    if (null !== inherited) {
+        try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        messageEl.textContent = DEFAULT_MESSAGE;
+        overlay.style.transition = 'opacity 0.3s ease';
+        overlay.classList.remove('d-none');
+        overlay.classList.add('d-flex');
+        setProgress(parseFloat(inherited) || 0);
+        startCreeping();
+
+        const finish = function () {
+            clearInterval(timer);
+            setProgress(100);
+            setTimeout(function () {
+                overlay.style.opacity = '0';
+                setTimeout(function () {
+                    hideOverlay();
+                    overlay.style.opacity = '';
+                }, 300);
+            }, 350);
+        };
+
+        if ('complete' === document.readyState) {
+            finish();
+        } else {
+            window.addEventListener('load', finish, { once: true });
+        }
     }
 
     // bfcache: navigating back/forward (mouse or keyboard) restores the previous
@@ -32,13 +123,66 @@
         }
     });
 
+    function isRegularNavigationLink(link, event) {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+            return false;
+        }
+        if (link.hasAttribute('download') || link.closest('[data-no-page-loader]') || link.hasAttribute('data-bs-toggle')) {
+            return false;
+        }
+        if (link.target && '_self' !== link.target) {
+            return false;
+        }
+
+        const rawHref = link.getAttribute('href');
+        if (!rawHref || '#' === rawHref.charAt(0) || /^(javascript|mailto|tel):/i.test(rawHref)) {
+            return false;
+        }
+
+        const url = new URL(link.href, window.location.href);
+        if (url.origin !== window.location.origin) {
+            return false;
+        }
+        // Same page anchor only.
+        if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
+            return false;
+        }
+
+        return true;
+    }
+
     document.addEventListener('click', function (event) {
-        const trigger = event.target.closest('[data-account-nav]');
-        if (!trigger || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        const accountTrigger = event.target.closest('[data-account-nav]');
+        if (accountTrigger && !event.defaultPrevented && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            window.showAccountNavOverlay(accountTrigger.dataset.accountNav);
             return;
         }
 
-        window.showAccountNavOverlay(trigger.dataset.accountNav);
+        const link = event.target.closest('a[href]');
+        if (!link || !isRegularNavigationLink(link, event)) {
+            return;
+        }
+
+        // Let the other handlers run first: ajax modals call preventDefault() on their links.
+        setTimeout(function () {
+            if (!event.defaultPrevented) {
+                window.showPageLoader();
+            }
+        }, 0);
+    });
+
+    document.addEventListener('submit', function (event) {
+        const form = event.target;
+        if (form.closest('[data-no-page-loader]') || (form.target && '_self' !== form.target)) {
+            return;
+        }
+
+        // Ajax forms (modals, confirmation dialog...) call preventDefault() in their handlers.
+        setTimeout(function () {
+            if (!event.defaultPrevented) {
+                window.showPageLoader();
+            }
+        }, 0);
     });
 })();
 </script>

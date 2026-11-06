@@ -28,6 +28,7 @@
 
     <p class="filters">
         {% if filterAccount %}<span>{{ 'Account'|trans }}: {{ filterAccount.label }}{% if filterAccount.person %} ({{ filterAccount.person.name }}){% endif %}</span>{% endif %}
+        {% if filterPerson %}<span>{{ 'Person'|trans }}: {{ filterPerson.name }}</span>{% endif %}
         {% if filterCategory %}<span>{{ 'Tag'|trans }}: {{ filterCategory.fullName }}</span>{% endif %}
         {% if filterDateFrom %}<span>{{ 'From'|trans }}: {{ filterDateFrom }}</span>{% endif %}
         {% if filterDateTo %}<span>{{ 'To'|trans }}: {{ filterDateTo }}</span>{% endif %}

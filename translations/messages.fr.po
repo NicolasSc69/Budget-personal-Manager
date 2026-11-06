@@ -1224,3 +1224,6 @@ msgstr "Jour du mois de vérification des récurrences à dupliquer"
 
 msgid "The recurring transactions check day must be between 1 and 31."
 msgstr "Le jour de vérification des récurrences doit être compris entre 1 et 31."
+
+msgid "Loading in progress"
+msgstr "Chargement en cours"

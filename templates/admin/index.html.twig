@@ -150,7 +150,7 @@
                 {% if backupFileExists %}
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="small text-muted">compta-backup.db ({{ backupFileModifiedAt|date('d/m/Y H:i') }})</span>
-                        <a href="{{ path('app_admin_backup_download') }}" class="btn btn-sm btn-outline-secondary">
+                        <a href="{{ path('app_admin_backup_download') }}" data-no-page-loader class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-download"></i> {{ 'Download backup'|trans }}
                         </a>
                     </div>
@@ -191,7 +191,7 @@
                     <p class="text-muted small">
                         {{ 'Downloads a full copy of the database (SQLite file): accounts, tags, account types and transactions.'|trans }}
                     </p>
-                    <a href="{{ path('app_admin_export') }}" class="btn btn-primary">
+                    <a href="{{ path('app_admin_export') }}" data-no-page-loader class="btn btn-primary">
                         <i class="bi bi-download"></i> {{ 'Download database'|trans }}
                     </a>
                 </div>

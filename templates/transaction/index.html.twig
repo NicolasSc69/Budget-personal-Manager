@@ -32,7 +32,7 @@
             {{ include('transaction/_recurring_actions.html.twig', {account: filterAccount, pendingCount: pendingRecurringCount, sundayCount: sundayRecurringCount, current: null, alignStart: true}) }}
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ path('app_transaction_export_pdf', queryParams) }}" class="btn btn-outline-secondary">
+            <a href="{{ path('app_transaction_export_pdf', queryParams) }}" data-no-page-loader class="btn btn-outline-secondary">
                 <i class="bi bi-file-earmark-pdf"></i> {{ 'Export PDF'|trans }}
             </a>
             <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
@@ -48,7 +48,7 @@
                     <label class="form-label small mb-1" for="filter-search">{{ 'Title'|trans }}</label>
                     <input type="text" id="filter-search" name="search" value="{{ filterSearch }}" placeholder="{{ 'Search…'|trans }}" class="form-control form-control-sm">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small mb-1" for="filter-account">{{ 'Account'|trans }}</label>
                     <select id="filter-account" name="account" class="form-select form-select-sm">
                         <option value="">{{ 'All'|trans }}</option>
@@ -57,7 +57,16 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <label class="form-label small mb-1" for="filter-person">{{ 'Person'|trans }}</label>
+                    <select id="filter-person" name="person" class="form-select form-select-sm">
+                        <option value="">{{ 'All'|trans }}</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}" {{ filterPerson and filterPerson.id == person.id ? 'selected' : '' }}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label small mb-1" for="filter-category">{{ 'Tag'|trans }}</label>
                     <select id="filter-category" name="category" class="form-select form-select-sm">
                         <option value="">{{ 'All'|trans }}</option>
