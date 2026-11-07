@@ -1227,3 +1227,33 @@ msgstr "The recurring transactions check day must be between 1 and 31."
 
 msgid "Loading in progress"
 msgstr "Loading in progress"
+
+msgid "Entity"
+msgstr "Entity"
+
+msgid "Calculations"
+msgstr "Calculations"
+
+msgid "Entries"
+msgstr "Entries"
+
+msgid "Last computed"
+msgstr "Last computed"
+
+msgid "Calculation caches"
+msgstr "Calculation caches"
+
+msgid "Clear this cache"
+msgstr "Clear this cache"
+
+msgid "Unknown cache."
+msgstr "Unknown cache."
+
+msgid "The \"%cache%\" calculation cache has been cleared."
+msgstr "The \"%cache%\" calculation cache has been cleared."
+
+msgid "Balances, sums and dashboard reports are cached per entity: creating, editing or deleting an entity only clears the calculations that depend on it."
+msgstr "Balances, sums and dashboard reports are cached per entity: creating, editing or deleting an entity only clears the calculations that depend on it."
+
+msgid "%count% calculation(s)"
+msgstr "%count% calculation(s)"

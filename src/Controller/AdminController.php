@@ -6,6 +6,7 @@ use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\TransactionRepository;
+use App\Service\CalculationCache;
 use App\Service\DatabaseBackupService;
 use App\Service\TestReportReader;
 use Doctrine\DBAL\Connection;
@@ -34,6 +35,7 @@ final class AdminController extends AbstractController
         DatabaseBackupService $databaseBackupService,
         TestReportReader $testReportReader,
         KernelInterface $kernel,
+        CalculationCache $calculationCache,
     ): Response {
         $dbPath = $this->getDatabasePath($connection);
         $exists = is_file($dbPath);
@@ -54,6 +56,7 @@ final class AdminController extends AbstractController
             'backupFileModifiedAt' => $backupFileExists ? $this->fileModifiedAt($backupFilePath) : null,
             'testReport' => $testReportReader->read(),
             'caches' => $this->listCacheDirectories($kernel),
+            'calculationCaches' => $calculationCache->describe(),
         ]);
     }
 
@@ -240,7 +243,7 @@ final class AdminController extends AbstractController
     }
 
     #[Route('/import', name: 'app_admin_import', methods: ['POST'])]
-    public function import(Request $request, Connection $connection, TranslatorInterface $translator): Response
+    public function import(Request $request, Connection $connection, TranslatorInterface $translator, CalculationCache $calculationCache): Response
     {
         if (!$this->isCsrfTokenValid('admin_import', $request->request->getString('_token'))) {
             $this->addFlash('danger', $translator->trans('Invalid security token, please try again.'));
@@ -274,6 +277,9 @@ final class AdminController extends AbstractController
             copy($uploadedFile->getPathname(), $dbPath);
         }
 
+        // The database file was replaced without going through Doctrine: drop the cached figures.
+        $calculationCache->invalidateAll();
+
         $this->addFlash('success', $translator->trans('The database has been imported successfully. A backup of the previous database was kept next to the file.'));
 
         return $this->redirectToRoute('app_admin_index');
@@ -300,6 +306,18 @@ final class AdminController extends AbstractController
         // after a service's constructor changes — even right after an admin clears "the" cache
         // believing it covers everything.
         $cacheDirs = $this->cacheDirectoryPaths($kernel);
+
+        // A single environment's cache (cross on its row) instead of all of them.
+        $env = $request->request->getString('env');
+        if ('' !== $env) {
+            $cacheDirs = array_values(array_filter($cacheDirs, static fn (string $dir): bool => basename($dir) === $env));
+            if ([] === $cacheDirs) {
+                $this->addFlash('danger', $translator->trans('Unknown cache.'));
+
+                return $this->redirectToRoute('app_admin_index');
+            }
+        }
+
         register_shutdown_function(static function () use ($cacheDirs): void {
             try {
                 (new Filesystem())->remove($cacheDirs);
@@ -309,6 +327,30 @@ final class AdminController extends AbstractController
         });
 
         $this->addFlash('success', $translator->trans('The cache has been cleared.'));
+
+        return $this->redirectToRoute('app_admin_index');
+    }
+
+    #[Route('/calculation-cache/{entity}/clear', name: 'app_admin_clear_calculation_cache', methods: ['POST'])]
+    public function clearCalculationCache(string $entity, Request $request, CalculationCache $calculationCache, TranslatorInterface $translator): Response
+    {
+        if (!$this->isCsrfTokenValid('admin_clear_calculation_cache', $request->request->getString('_token'))) {
+            $this->addFlash('danger', $translator->trans('Invalid security token, please try again.'));
+
+            return $this->redirectToRoute('app_admin_index');
+        }
+
+        if (!isset(CalculationCache::ENTITY_CACHES[$entity])) {
+            $this->addFlash('danger', $translator->trans('Unknown cache.'));
+
+            return $this->redirectToRoute('app_admin_index');
+        }
+
+        $calculationCache->invalidate([$entity]);
+
+        $this->addFlash('success', $translator->trans('The "%cache%" calculation cache has been cleared.', [
+            '%cache%' => $translator->trans(CalculationCache::ENTITY_CACHES[$entity]['label']),
+        ]));
 
         return $this->redirectToRoute('app_admin_index');
     }

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Service\TestReportReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -56,6 +57,16 @@ final class TestReportController extends AbstractController
         // interactive shell, which would make phpunit fail to even start —
         // producing no JUnit report and no useful error message.
         $phpBinary = (new PhpExecutableFinder())->find() ?: 'php';
+
+        // Start from a fresh test-env cache. When the tests run without debug (APP_DEBUG=0, e.g. on
+        // a server or in the Docker image), Symfony never checks whether its compiled container is
+        // still up to date: one compiled before a code update keeps being reused, and the suite
+        // fails on services that no longer match the code ("non-existent service", "Too few
+        // arguments to function ...::__construct()"). Never done when this request itself runs in
+        // the test environment, it would delete the cache it is using.
+        if ('test' !== $kernel->getEnvironment()) {
+            (new Filesystem())->remove(\dirname($kernel->getCacheDir()).'/test');
+        }
 
         $process = new Process(
             [$phpBinary, 'bin/phpunit', '--log-junit', 'var/test-report/junit.xml', '--testdox-text', 'var/test-report/testdox.txt'],

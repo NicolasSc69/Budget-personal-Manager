@@ -57,8 +57,25 @@ final class TransactionController extends AbstractController
         $chequeOnly = $filters['chequeOnly'];
         $person = $filters['person'];
 
-        $sort = $request->query->get('sort', 'id');
-        $direction = 'asc' === strtolower((string) $request->query->get('direction', 'desc')) ? 'asc' : 'desc';
+        $hasActiveFilter = null !== $account
+            || null !== $category
+            || null !== $person
+            || null !== $dateFrom
+            || null !== $dateTo
+            || null !== $amountMin
+            || null !== $amountMax
+            || (null !== $search && '' !== $search)
+            || $upcomingOnly
+            || $currentMonthOnly
+            || $deferredDebitOnly
+            || $chequeOnly;
+
+        // Dès qu'un filtre est actif (et sans tri explicite), on trie par date d'opération croissante.
+        $defaultSort = $hasActiveFilter ? 'date' : 'id';
+        $defaultDirection = $hasActiveFilter ? 'asc' : 'desc';
+
+        $sort = $request->query->get('sort', $defaultSort);
+        $direction = 'asc' === strtolower((string) $request->query->get('direction', $defaultDirection)) ? 'asc' : 'desc';
 
         $itemsPerPage = $appSettingRepository->getSettings()->getItemsPerPage();
         $totalTransactions = $transactionRepository->countFiltered($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly, $person);
@@ -129,7 +146,7 @@ final class TransactionController extends AbstractController
             'filteredAmountSum' => $filteredAmountSum,
             'balanceDate' => $forecastService->formatDate($today),
             'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account)),
-            'sundayRecurringCount' => count($transactionRepository->findRecurringOnSunday($account)),
+            'sundayRecurringCount' => $transactionRepository->countRecurringOnSunday($account),
         ]);
     }
 
@@ -287,7 +304,7 @@ final class TransactionController extends AbstractController
             'groups' => $groups,
             'filterAccount' => $account,
             'totalCount' => count($pending),
-            'sundayRecurringCount' => count($transactionRepository->findRecurringOnSunday($account)),
+            'sundayRecurringCount' => $transactionRepository->countRecurringOnSunday($account),
             'categories' => $categoryRepository->findAllOrderedByHierarchy(),
         ]);
     }
@@ -414,6 +431,7 @@ final class TransactionController extends AbstractController
     public function new(Request $request, EntityManagerInterface $entityManager, AccountRepository $accountRepository, TransactionRepository $transactionRepository, TranslatorInterface $translator): Response
     {
         $transaction = new Transaction();
+        $transaction->setDate(new \DateTimeImmutable('today'));
 
         $duplicateSource = $request->query->get('duplicate')
             ? $transactionRepository->find($request->query->get('duplicate'))

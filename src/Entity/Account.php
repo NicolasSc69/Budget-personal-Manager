@@ -51,7 +51,7 @@ class Account
     /**
      * @var Collection<int, Transaction>
      */
-    #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'account')]
+    #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'account', fetch: 'EXTRA_LAZY')]
     private Collection $transactions;
 
     public function __construct()

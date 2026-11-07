@@ -49,7 +49,7 @@ class Category
     /**
      * @var Collection<int, Transaction>
      */
-    #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'category', orphanRemoval: false)]
+    #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'category', orphanRemoval: false, fetch: 'EXTRA_LAZY')]
     private Collection $transactions;
 
     public function __construct()

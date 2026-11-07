@@ -1,4 +1,5 @@
-{{ form_start(form, formAction is defined and formAction ? {'action': formAction} : {}) }}
+{% set txFormId = 'transaction-form' ~ ((transaction is defined and transaction and transaction.id) ? '-' ~ transaction.id : '') %}
+{{ form_start(form, (formAction is defined and formAction ? {'action': formAction} : {})|merge({'attr': {'id': txFormId}})) }}
     {{ form_row(form.date) }}
     <div class="d-flex flex-wrap column-gap-4">
         {{ form_row(form.isDeferredDebit) }}
@@ -29,17 +30,16 @@
         {{ form_help(form.title) }}
         {{ form_errors(form.title) }}
     </div>
-    <div class="mt-3">
-        <button class="btn btn-primary">{{ button_label|default('Save'|trans) }}</button>
-        <a href="{{ path('app_transaction_index') }}" class="btn btn-outline-secondary" data-role="cancel">{{ 'Cancel'|trans }}</a>
-    </div>
 {{ form_end(form) }}
 
-{% if transaction is defined and transaction and transaction.id %}
-    <div class="mt-3">
+{# Actions on a single row: the delete form cannot be nested in the main form, so the save button targets it through the "form" attribute. #}
+<div class="mt-3 d-flex flex-wrap flex-sm-nowrap align-items-center gap-2">
+    <button type="submit" form="{{ txFormId }}" class="btn btn-primary">{{ button_label|default('Save'|trans) }}</button>
+    <a href="{{ path('app_transaction_index') }}" class="btn btn-outline-secondary" data-role="cancel">{{ 'Cancel'|trans }}</a>
+    {% if transaction is defined and transaction and transaction.id %}
         {{ include('transaction/_delete_form.html.twig') }}
-    </div>
-{% endif %}
+    {% endif %}
+</div>
 
 <script>
 (function () {

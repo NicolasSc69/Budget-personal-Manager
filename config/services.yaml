@@ -37,3 +37,7 @@ services:
     App\Service\TestReportReader:
         arguments:
             $projectDir: '%kernel.project_dir%'
+
+    App\Service\CalculationCache:
+        arguments:
+            $cache: '@cache.calculations'

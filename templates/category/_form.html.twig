@@ -12,7 +12,7 @@
     {{ form_row(form.color) }}
     {{ form_row(form.parent) }}
     {{ form_row(form.excludedFromForecast) }}
-    <div class="mt-3">
+    <div class="mt-3 d-flex flex-wrap flex-sm-nowrap align-items-center gap-2">
         <button class="btn btn-primary">{{ (button_label|default('Save'))|trans }}</button>
         <a href="{{ path('app_category_index') }}" class="btn btn-outline-secondary" data-role="cancel">{{ 'Cancel'|trans }}</a>
     </div>

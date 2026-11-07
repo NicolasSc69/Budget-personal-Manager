@@ -57,6 +57,7 @@
                             <th>{{ 'Files'|trans }}</th>
                             <th>{{ 'Size'|trans }}</th>
                             <th>{{ 'Last modified'|trans }}</th>
+                            <th class="text-end"><span class="visually-hidden">{{ 'Actions'|trans }}</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -69,6 +70,15 @@
                                 <td>{{ cache.fileCount }}</td>
                                 <td>{{ (cache.size / 1024)|number_format(1, ',', ' ') }} KB</td>
                                 <td>{{ cache.modifiedAt ? cache.modifiedAt|date('d/m/Y H:i:s') : '—' }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{{ path('app_admin_clear_cache') }}" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('admin_clear_cache') }}">
+                                        <input type="hidden" name="env" value="{{ cache.env }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="{{ 'Clear this cache'|trans }}" aria-label="{{ 'Clear this cache'|trans }} ({{ cache.env }})">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -84,6 +94,60 @@
                     <i class="bi bi-arrow-clockwise"></i> {{ 'Clear cache'|trans }}
                 </button>
             </form>
+
+            <h3 class="h6 mt-4">{{ 'Calculation caches'|trans }}</h3>
+            <p class="text-muted small">
+                {{ 'Balances, sums and dashboard reports are cached per entity: creating, editing or deleting an entity only clears the calculations that depend on it.'|trans }}
+            </p>
+            <table class="table table-sm mb-0" id="calculation-caches">
+                <thead>
+                    <tr>
+                        <th>{{ 'Entity'|trans }}</th>
+                        <th>{{ 'Calculations'|trans }}</th>
+                        <th>{{ 'Entries'|trans }}</th>
+                        <th>{{ 'Size'|trans }}</th>
+                        <th>{{ 'Last computed'|trans }}</th>
+                        <th class="text-end"><span class="visually-hidden">{{ 'Actions'|trans }}</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cache in calculationCaches %}
+                        <tr data-cache="{{ cache.entity }}">
+                            <td>{{ cache.label|trans }}</td>
+                            <td>
+                                {% if cache.calculations is empty %}
+                                    <span class="text-muted">—</span>
+                                {% else %}
+                                    <div class="dropdown">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle py-0" data-bs-toggle="dropdown" aria-expanded="false">
+                                            {{ '%count% calculation(s)'|trans({'%count%': cache.calculations|length}) }}
+                                        </button>
+                                        <ul class="dropdown-menu calculation-list">
+                                            {% for name, count in cache.calculations %}
+                                                <li class="dropdown-item-text d-flex justify-content-between gap-3 small">
+                                                    <span class="font-monospace">{{ name }}</span>
+                                                    <span class="badge text-bg-secondary rounded-pill align-self-center" title="{{ 'Entries'|trans }}">{{ count }}</span>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ cache.entries }}</td>
+                            <td>{{ (cache.size / 1024)|number_format(1, ',', ' ') }} KB</td>
+                            <td>{{ cache.lastComputedAt ? cache.lastComputedAt|date('d/m/Y H:i:s') : '—' }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{{ path('app_admin_clear_calculation_cache', {entity: cache.entity}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('admin_clear_calculation_cache') }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="{{ 'Clear this cache'|trans }}" aria-label="{{ 'Clear this cache'|trans }} ({{ cache.label|trans }})" {{ cache.entries == 0 ? 'disabled' }}>
+                                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 

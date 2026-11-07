@@ -309,6 +309,8 @@
                 if (window.showAccountNavOverlay && selectedOption.value !== '{{ path('app_dashboard') }}') {
                     var redirectTemplate = {{ 'Redirecting to %account%'|trans({'%account%': '__ACCOUNT__'})|json_encode|raw }};
                     window.showAccountNavOverlay(redirectTemplate.replace('__ACCOUNT__', selectedOption.textContent.trim()));
+                } else {
+                    window.showPageLoader?.();
                 }
                 window.location = this.value;
             });

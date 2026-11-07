@@ -425,6 +425,7 @@
             return function (evt) {
                 const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
                 if (points.length > 0 && urls[points[0].index]) {
+                    window.showPageLoader?.();
                     window.location = urls[points[0].index];
                 }
             };

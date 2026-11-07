@@ -40,7 +40,7 @@ final class AccountController extends AbstractController
         foreach ($accounts as $account) {
             $balances[$account->getId()] = $transactionRepository->sumUntil($today, $account);
             $pendingRecurringCounts[$account->getId()] = count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account));
-            $sundayRecurringCounts[$account->getId()] = count($transactionRepository->findRecurringOnSunday($account));
+            $sundayRecurringCounts[$account->getId()] = $transactionRepository->countRecurringOnSunday($account);
         }
 
         return $this->render('account/index.html.twig', [

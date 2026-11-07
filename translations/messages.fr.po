@@ -1227,3 +1227,33 @@ msgstr "Le jour de vérification des récurrences doit être compris entre 1 et 
 
 msgid "Loading in progress"
 msgstr "Chargement en cours"
+
+msgid "Entity"
+msgstr "Entité"
+
+msgid "Calculations"
+msgstr "Calculs"
+
+msgid "Entries"
+msgstr "Entrées"
+
+msgid "Last computed"
+msgstr "Dernier calcul"
+
+msgid "Calculation caches"
+msgstr "Caches de calcul"
+
+msgid "Clear this cache"
+msgstr "Vider ce cache"
+
+msgid "Unknown cache."
+msgstr "Cache inconnu."
+
+msgid "The \"%cache%\" calculation cache has been cleared."
+msgstr "Le cache de calcul « %cache% » a été vidé."
+
+msgid "Balances, sums and dashboard reports are cached per entity: creating, editing or deleting an entity only clears the calculations that depend on it."
+msgstr "Les soldes, sommes et rapports du tableau de bord sont mis en cache par entité : créer, modifier ou supprimer une entité ne vide que les calculs qui en dépendent."
+
+msgid "%count% calculation(s)"
+msgstr "%count% calcul(s)"

@@ -7,6 +7,7 @@ use App\Entity\Category;
 use App\Entity\Person;
 use App\Entity\Transaction;
 use App\Enum\Recurrence;
+use App\Service\CalculationCache;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -16,7 +17,10 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class TransactionRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    /**
+     * Sums, counts and balance movements are cached (see CalculationCache) until any entity changes.
+     */
+    public function __construct(ManagerRegistry $registry, private readonly CalculationCache $calculationCache)
     {
         parent::__construct($registry, Transaction::class);
     }
@@ -244,9 +248,11 @@ class TransactionRepository extends ServiceEntityRepository
         bool $chequeOnly = false,
         ?Person $person = null,
     ): int {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly, person: $person);
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT, CalculationCache::CATEGORY, CalculationCache::PERSON], get_defined_vars(), function () use ($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $deferredDebitOnly, $chequeOnly, $person): int {
+            $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, deferredDebitOnly: $deferredDebitOnly, chequeOnly: $chequeOnly, person: $person);
 
-        return (int) $qb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
+            return (int) $qb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
+        });
     }
 
     public function sumFiltered(
@@ -265,11 +271,13 @@ class TransactionRepository extends ServiceEntityRepository
         bool $chequeOnly = false,
         ?Person $person = null,
     ): float {
-        $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded, $byEffectiveDate, $deferredDebitOnly, $chequeOnly, $person);
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT, CalculationCache::CATEGORY, CalculationCache::PERSON], get_defined_vars(), function () use ($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded, $byEffectiveDate, $deferredDebitOnly, $chequeOnly, $person): float {
+            $qb = $this->buildFilteredQueryBuilder($account, $category, $dateFrom, $dateTo, $amountMin, $amountMax, $search, $upcomingOnly, $currentMonthOnly, $excludeForecastExcluded, $byEffectiveDate, $deferredDebitOnly, $chequeOnly, $person);
 
-        $total = $qb->select('SUM(t.amount)')->getQuery()->getSingleScalarResult();
+            $total = $qb->select('SUM(t.amount)')->getQuery()->getSingleScalarResult();
 
-        return null !== $total ? (float) $total : 0.0;
+            return null !== $total ? (float) $total : 0.0;
+        });
     }
 
     /**
@@ -292,32 +300,44 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Ordered by the date each transaction actually impacts the balance (actual debit date for deferred payments).
+     * Lightweight list of the balance movements (no entity hydration, which is by far the slowest
+     * part on large histories): effective date ('Y-m-d', see Transaction::getEffectiveDate()),
+     * amount and category id, ordered by effective date then id.
      *
-     * @return Transaction[]
+     * @return list<array{date: string, amount: float, categoryId: ?int}>
      */
-    public function findAllOrderedByEffectiveDate(?Account $account = null): array
+    public function findBalanceMovements(?Account $account = null): array
     {
-        $qb = $this->createQueryBuilder('t')
-            ->addSelect(self::EFFECTIVE_DATE.' AS HIDDEN effectiveDate')
-            ->orderBy('effectiveDate', 'ASC')
-            ->addOrderBy('t.id', 'ASC');
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['account' => $account], function () use ($account) {
+            $qb = $this->createQueryBuilder('t')
+                ->select(self::EFFECTIVE_DATE.' AS effectiveDate', 't.amount AS amount', 'IDENTITY(t.category) AS categoryId')
+                ->orderBy('effectiveDate', 'ASC')
+                ->addOrderBy('t.id', 'ASC');
 
-        if (null !== $account) {
-            $qb->andWhere('t.account = :account')->setParameter('account', $account);
-        }
+            if (null !== $account) {
+                $qb->andWhere('t.account = :account')->setParameter('account', $account);
+            }
 
-        return $qb->getQuery()->getResult();
+            return array_map(static fn (array $row): array => [
+                'date' => substr((string) $row['effectiveDate'], 0, 10),
+                'amount' => (float) $row['amount'],
+                'categoryId' => null !== $row['categoryId'] ? (int) $row['categoryId'] : null,
+            ], $qb->getQuery()->getScalarResult());
+        });
     }
 
     public function findEarliestDate(?Account $account = null): ?\DateTimeImmutable
     {
-        return $this->findAggregateDate('MIN('.self::EFFECTIVE_DATE.')', $account);
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['account' => $account], function () use ($account) {
+            return $this->findAggregateDate('MIN('.self::EFFECTIVE_DATE.')', $account);
+        });
     }
 
     public function findLatestDate(?Account $account = null): ?\DateTimeImmutable
     {
-        return $this->findAggregateDate('MAX('.self::EFFECTIVE_DATE.')', $account);
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['account' => $account], function () use ($account) {
+            return $this->findAggregateDate('MAX('.self::EFFECTIVE_DATE.')', $account);
+        });
     }
 
     private function findAggregateDate(string $select, ?Account $account): ?\DateTimeImmutable
@@ -336,32 +356,36 @@ class TransactionRepository extends ServiceEntityRepository
 
     public function sumAll(?Account $account = null): float
     {
-        $qb = $this->createQueryBuilder('t')
-            ->select('SUM(t.amount)');
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['account' => $account], function () use ($account) {
+            $qb = $this->createQueryBuilder('t')
+                ->select('SUM(t.amount)');
 
-        if (null !== $account) {
-            $qb->andWhere('t.account = :account')->setParameter('account', $account);
-        }
+            if (null !== $account) {
+                $qb->andWhere('t.account = :account')->setParameter('account', $account);
+            }
 
-        $total = $qb->getQuery()->getSingleScalarResult();
+            $total = $qb->getQuery()->getSingleScalarResult();
 
-        return ($total !== null ? (float) $total : 0.0) + $this->getInitialBalanceOffset($account);
+            return ($total !== null ? (float) $total : 0.0) + $this->getInitialBalanceOffset($account);
+        });
     }
 
     public function sumUntil(\DateTimeImmutable $until, ?Account $account = null): float
     {
-        $qb = $this->createQueryBuilder('t')
-            ->select('SUM(t.amount)')
-            ->andWhere(self::EFFECTIVE_DATE.' <= :until')
-            ->setParameter('until', $until, Types::DATE_IMMUTABLE);
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['until' => $until, 'account' => $account], function () use ($until, $account) {
+            $qb = $this->createQueryBuilder('t')
+                ->select('SUM(t.amount)')
+                ->andWhere(self::EFFECTIVE_DATE.' <= :until')
+                ->setParameter('until', $until, Types::DATE_IMMUTABLE);
 
-        if (null !== $account) {
-            $qb->andWhere('t.account = :account')->setParameter('account', $account);
-        }
+            if (null !== $account) {
+                $qb->andWhere('t.account = :account')->setParameter('account', $account);
+            }
 
-        $total = $qb->getQuery()->getSingleScalarResult();
+            $total = $qb->getQuery()->getSingleScalarResult();
 
-        return ($total !== null ? (float) $total : 0.0) + $this->getInitialBalanceOffset($account);
+            return ($total !== null ? (float) $total : 0.0) + $this->getInitialBalanceOffset($account);
+        });
     }
 
     /**
@@ -441,26 +465,60 @@ class TransactionRepository extends ServiceEntityRepository
 
     /**
      * Recurring transactions (series templates and their occurrences) dated on a Sunday,
-     * oldest first. The day-of-week filter is applied in PHP since DQL has no portable
-     * day-of-week function.
+     * oldest first.
      *
      * @return list<Transaction>
      */
     public function findRecurringOnSunday(?Account $account = null): array
     {
-        $qb = $this->createQueryBuilder('t')
-            ->andWhere('t.recurrence != :none OR t.recurrenceParent IS NOT NULL')
-            ->setParameter('none', Recurrence::NONE)
+        $ids = $this->findRecurringOnSundayIds($account);
+        if ([] === $ids) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('t')
+            ->andWhere('t.id IN (:ids)')
+            ->setParameter('ids', $ids)
             ->orderBy('t.date', 'ASC')
-            ->addOrderBy('t.id', 'ASC');
+            ->addOrderBy('t.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countRecurringOnSunday(?Account $account = null): int
+    {
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['account' => $account], function () use ($account) {
+            return count($this->findRecurringOnSundayIds($account));
+        });
+    }
+
+    /**
+     * Ids of the recurring transactions dated on a Sunday. Only the id and date are fetched (no
+     * entity hydration) and the day-of-week filter is applied in PHP since DQL has no portable
+     * day-of-week function: recurring series accumulate many occurrences over time, so loading
+     * them all as entities just to count the Sunday ones was slow.
+     *
+     * @return list<int>
+     */
+    private function findRecurringOnSundayIds(?Account $account): array
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->select('t.id AS id', 't.date AS date')
+            ->andWhere('t.recurrence != :none OR t.recurrenceParent IS NOT NULL')
+            ->setParameter('none', Recurrence::NONE);
 
         if (null !== $account) {
             $qb->andWhere('t.account = :account')->setParameter('account', $account);
         }
 
-        return array_values(array_filter(
-            $qb->getQuery()->getResult(),
-            static fn (Transaction $transaction): bool => '7' === $transaction->getDate()->format('N'),
-        ));
+        $ids = [];
+        foreach ($qb->getQuery()->getArrayResult() as $row) {
+            $date = $row['date'] instanceof \DateTimeInterface ? $row['date'] : new \DateTimeImmutable((string) $row['date']);
+            if ('7' === $date->format('N')) {
+                $ids[] = (int) $row['id'];
+            }
+        }
+
+        return $ids;
     }
 }

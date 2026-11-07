@@ -136,6 +136,54 @@ final class RecurringTransactionGeneratorTest extends KernelTestCase
         self::assertTrue($this->isPending($template));
     }
 
+    public function testGeneratedOccurrencesOfADeferredTemplateGetTheirOwnDebitDate(): void
+    {
+        $template = $this->createMonthlyTemplate('-3 months');
+        $template->setIsDeferredDebit(true);
+        $template->setDebitDate(Transaction::computeDeferredDebitDate($template->getDate()));
+        $this->entityManager->flush();
+
+        $this->generator->generateDueOccurrences();
+
+        $series = $this->findSeries($template);
+        self::assertCount(4, $series);
+        foreach ($series as $transaction) {
+            self::assertTrue($transaction->isDeferredDebit());
+            self::assertSame(
+                Transaction::computeDeferredDebitDate($transaction->getDate())->format('Y-m-d'),
+                $transaction->getDebitDate()?->format('Y-m-d'),
+                'Debit date of the occurrence of '.$transaction->getDate()->format('Y-m-d'),
+            );
+        }
+    }
+
+    public function testGeneratedOccurrencesOfANonDeferredTemplateHaveNoDebitDate(): void
+    {
+        $template = $this->createMonthlyTemplate('-2 months');
+
+        $this->generator->generateDueOccurrences();
+
+        foreach ($this->findSeries($template) as $transaction) {
+            self::assertFalse($transaction->isDeferredDebit());
+            self::assertNull($transaction->getDebitDate());
+        }
+    }
+
+    public function testShiftingASundayDeferredOccurrenceToMondayRecomputesItsDebitDate(): void
+    {
+        // Sunday 20 Sept 2026 → Monday 21: crosses the 20th, so the debit moves from 5 Oct to 5 Nov.
+        $template = $this->createMonthlyTemplate('-1 month');
+        $template->setDate(new \DateTimeImmutable('2026-09-20'));
+        $template->setIsDeferredDebit(true);
+        $template->setDebitDate(new \DateTimeImmutable('2026-10-05'));
+        $this->entityManager->flush();
+
+        self::assertSame(1, $this->generator->shiftSundayOccurrencesToMonday([$template->getId()]));
+
+        self::assertSame('2026-09-21', $template->getDate()->format('Y-m-d'));
+        self::assertSame('2026-11-05', $template->getDebitDate()->format('Y-m-d'));
+    }
+
     private function setRecurringCheckDay(int $day): void
     {
         $this->appSettingRepository->getSettings()->setRecurringCheckDay($day);

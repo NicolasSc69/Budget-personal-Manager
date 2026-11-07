@@ -66,7 +66,7 @@ class DashboardController extends AbstractController
                     'upcomingBalance' => $transactionRepository->sumAll($eachAccount),
                     'url' => $this->generateUrl('app_dashboard_account', ['id' => $eachAccount->getId()]),
                     'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($eachAccount)),
-                    'sundayRecurringCount' => count($transactionRepository->findRecurringOnSunday($eachAccount)),
+                    'sundayRecurringCount' => $transactionRepository->countRecurringOnSunday($eachAccount),
                 ];
                 $averageSalaryTotal += (float) ($eachAccount->getAverageSalary() ?? 0);
             }
@@ -150,7 +150,7 @@ class DashboardController extends AbstractController
             'progress' => $progress,
             'recentTransactions' => $transactionRepository->findRecent($account, 10),
             'pendingRecurringCount' => count($recurringTransactionGenerator->findMonthlyTemplatesPendingNextMonth($account)),
-            'sundayRecurringCount' => count($transactionRepository->findRecurringOnSunday($account)),
+            'sundayRecurringCount' => $transactionRepository->countRecurringOnSunday($account),
         ]);
     }
 

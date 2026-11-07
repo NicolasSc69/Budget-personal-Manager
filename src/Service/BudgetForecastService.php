@@ -11,7 +11,18 @@ class BudgetForecastService
     public function __construct(
         private readonly TransactionRepository $transactionRepository,
         private readonly RequestStack $requestStack,
+        private readonly CalculationCache $calculationCache,
     ) {
+    }
+
+    /**
+     * @return list<array{date: string, amount: float, categoryId: ?int}>
+     */
+    private function getBalanceMovements(?Account $account): array
+    {
+        // Cached (and kept in memory for the request) by the repository: the dashboard builds several
+        // reports (3 yearly reports + the daily balances) from the same whole history.
+        return $this->transactionRepository->findBalanceMovements($account);
     }
 
     /**
@@ -19,69 +30,74 @@ class BudgetForecastService
      */
     public function getMonthlyReport(\DateTimeImmutable $since, \DateTimeImmutable $until, ?Account $account = null): array
     {
-        $sinceKey = $since->format('Y-m');
-        $untilKey = $until->format('Y-m');
+        // Month labels are localized: the locale is part of the key.
+        $locale = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
 
-        $monthlyBalances = [];
-        // Net amount per month and per category: a refund offsets its category's expense instead of
-        // counting as income (same rule as getCategoryBreakdown()).
-        $monthlyCategoryNet = [];
-        $balance = $this->transactionRepository->getInitialBalanceOffset($account);
-        $lastBalanceBeforeWindow = $balance;
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['since' => $since, 'until' => $until, 'account' => $account, 'locale' => $locale], function () use ($since, $until, $account) {
+            $sinceKey = $since->format('Y-m');
+            $untilKey = $until->format('Y-m');
 
-        foreach ($this->transactionRepository->findAllOrderedByEffectiveDate($account) as $transaction) {
-            $amount = (float) $transaction->getAmount();
-            $balance += $amount;
-            $key = $transaction->getEffectiveDate()->format('Y-m');
-            $monthlyBalances[$key] = $balance;
+            $monthlyBalances = [];
+            // Net amount per month and per category: a refund offsets its category's expense instead of
+            // counting as income (same rule as getCategoryBreakdown()).
+            $monthlyCategoryNet = [];
+            $balance = $this->transactionRepository->getInitialBalanceOffset($account);
+            $lastBalanceBeforeWindow = $balance;
 
-            if ($key < $sinceKey) {
-                $lastBalanceBeforeWindow = $balance;
-                continue;
+            foreach ($this->getBalanceMovements($account) as $movement) {
+                $amount = $movement['amount'];
+                $balance += $amount;
+                $key = substr($movement['date'], 0, 7);
+                $monthlyBalances[$key] = $balance;
+
+                if ($key < $sinceKey) {
+                    $lastBalanceBeforeWindow = $balance;
+                    continue;
+                }
+
+                if ($key > $untilKey) {
+                    continue;
+                }
+
+                $categoryId = $movement['categoryId'] ?? 0;
+                $monthlyCategoryNet[$key][$categoryId] = ($monthlyCategoryNet[$key][$categoryId] ?? 0.0) + $amount;
             }
 
-            if ($key > $untilKey) {
-                continue;
+            $monthlyIncome = [];
+            $monthlyExpense = [];
+            foreach ($monthlyCategoryNet as $key => $netByCategory) {
+                $netByCategory = array_map(static fn (float $net) => round($net, 2), $netByCategory);
+                $monthlyIncome[$key] = array_sum(array_filter($netByCategory, static fn (float $net) => $net > 0));
+                $monthlyExpense[$key] = -array_sum(array_filter($netByCategory, static fn (float $net) => $net < 0));
             }
 
-            $categoryId = $transaction->getCategory()?->getId() ?? 0;
-            $monthlyCategoryNet[$key][$categoryId] = ($monthlyCategoryNet[$key][$categoryId] ?? 0.0) + $amount;
-        }
+            $months = [];
+            $cursor = $since;
+            $carryBalance = $lastBalanceBeforeWindow;
 
-        $monthlyIncome = [];
-        $monthlyExpense = [];
-        foreach ($monthlyCategoryNet as $key => $netByCategory) {
-            $netByCategory = array_map(static fn (float $net) => round($net, 2), $netByCategory);
-            $monthlyIncome[$key] = array_sum(array_filter($netByCategory, static fn (float $net) => $net > 0));
-            $monthlyExpense[$key] = -array_sum(array_filter($netByCategory, static fn (float $net) => $net < 0));
-        }
+            while ($cursor->format('Y-m') <= $untilKey) {
+                $key = $cursor->format('Y-m');
+                if (isset($monthlyBalances[$key])) {
+                    $carryBalance = $monthlyBalances[$key];
+                }
 
-        $months = [];
-        $cursor = $since;
-        $carryBalance = $lastBalanceBeforeWindow;
+                $income = $monthlyIncome[$key] ?? 0.0;
+                $expense = $monthlyExpense[$key] ?? 0.0;
 
-        while ($cursor->format('Y-m') <= $untilKey) {
-            $key = $cursor->format('Y-m');
-            if (isset($monthlyBalances[$key])) {
-                $carryBalance = $monthlyBalances[$key];
+                $months[] = [
+                    'key' => $key,
+                    'label' => $this->formatMonthLabel($cursor),
+                    'income' => $income,
+                    'expense' => $expense,
+                    'net' => $income - $expense,
+                    'balance' => $carryBalance,
+                ];
+
+                $cursor = $cursor->modify('+1 month');
             }
 
-            $income = $monthlyIncome[$key] ?? 0.0;
-            $expense = $monthlyExpense[$key] ?? 0.0;
-
-            $months[] = [
-                'key' => $key,
-                'label' => $this->formatMonthLabel($cursor),
-                'income' => $income,
-                'expense' => $expense,
-                'net' => $income - $expense,
-                'balance' => $carryBalance,
-            ];
-
-            $cursor = $cursor->modify('+1 month');
-        }
-
-        return $months;
+            return $months;
+        });
     }
 
     /**
@@ -89,42 +105,44 @@ class BudgetForecastService
      */
     public function getDailyBalances(\DateTimeImmutable $since, \DateTimeImmutable $until, ?Account $account = null): array
     {
-        $sinceKey = $since->format('Y-m-d');
-        $untilKey = $until->format('Y-m-d');
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT], ['since' => $since, 'until' => $until, 'account' => $account], function () use ($since, $until, $account) {
+            $sinceKey = $since->format('Y-m-d');
+            $untilKey = $until->format('Y-m-d');
 
-        $dailyBalances = [];
-        $balance = $this->transactionRepository->getInitialBalanceOffset($account);
-        $lastBalanceBeforeWindow = $balance;
+            $dailyBalances = [];
+            $balance = $this->transactionRepository->getInitialBalanceOffset($account);
+            $lastBalanceBeforeWindow = $balance;
 
-        foreach ($this->transactionRepository->findAllOrderedByEffectiveDate($account) as $transaction) {
-            $balance += (float) $transaction->getAmount();
-            $key = $transaction->getEffectiveDate()->format('Y-m-d');
-            $dailyBalances[$key] = $balance;
+            foreach ($this->getBalanceMovements($account) as $movement) {
+                $balance += $movement['amount'];
+                $key = $movement['date'];
+                $dailyBalances[$key] = $balance;
 
-            if ($key < $sinceKey) {
-                $lastBalanceBeforeWindow = $balance;
-            }
-        }
-
-        $days = [];
-        $cursor = $since;
-        $carryBalance = $lastBalanceBeforeWindow;
-
-        while ($cursor->format('Y-m-d') <= $untilKey) {
-            $key = $cursor->format('Y-m-d');
-            if (isset($dailyBalances[$key])) {
-                $carryBalance = $dailyBalances[$key];
+                if ($key < $sinceKey) {
+                    $lastBalanceBeforeWindow = $balance;
+                }
             }
 
-            $days[] = [
-                'date' => $key,
-                'balance' => $carryBalance,
-            ];
+            $days = [];
+            $cursor = $since;
+            $carryBalance = $lastBalanceBeforeWindow;
 
-            $cursor = $cursor->modify('+1 day');
-        }
+            while ($cursor->format('Y-m-d') <= $untilKey) {
+                $key = $cursor->format('Y-m-d');
+                if (isset($dailyBalances[$key])) {
+                    $carryBalance = $dailyBalances[$key];
+                }
 
-        return $days;
+                $days[] = [
+                    'date' => $key,
+                    'balance' => $carryBalance,
+                ];
+
+                $cursor = $cursor->modify('+1 day');
+            }
+
+            return $days;
+        });
     }
 
     /**
@@ -163,30 +181,32 @@ class BudgetForecastService
      */
     public function getCategoryBreakdown(\DateTimeImmutable $since, \DateTimeImmutable $until, ?Account $account = null, string $type = 'expense'): array
     {
-        $entries = [];
-        foreach ($this->transactionRepository->sumByCategorySince($since, $account, $until) as $row) {
-            // Net per category: a refund reduces its category's expense instead of being counted as income,
-            // so the amount matches the sum shown on the filtered transaction list.
-            $net = round((float) $row['netTotal'], 2);
-            $total = 'income' === $type ? $net : -$net;
+        return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT, CalculationCache::CATEGORY], ['since' => $since, 'until' => $until, 'account' => $account, 'type' => $type], function () use ($since, $until, $account, $type) {
+            $entries = [];
+            foreach ($this->transactionRepository->sumByCategorySince($since, $account, $until) as $row) {
+                // Net per category: a refund reduces its category's expense instead of being counted as income,
+                // so the amount matches the sum shown on the filtered transaction list.
+                $net = round((float) $row['netTotal'], 2);
+                $total = 'income' === $type ? $net : -$net;
 
-            if ($total <= 0) {
-                continue;
+                if ($total <= 0) {
+                    continue;
+                }
+
+                $category = $row['category'];
+
+                $entries[] = [
+                    'categoryId' => $category->getId(),
+                    'name' => $category->getFullName(),
+                    'color' => $category->getColor(),
+                    'total' => $total,
+                ];
             }
 
-            $category = $row['category'];
+            usort($entries, static fn (array $a, array $b) => $b['total'] <=> $a['total']);
 
-            $entries[] = [
-                'categoryId' => $category->getId(),
-                'name' => $category->getFullName(),
-                'color' => $category->getColor(),
-                'total' => $total,
-            ];
-        }
-
-        usort($entries, static fn (array $a, array $b) => $b['total'] <=> $a['total']);
-
-        return $entries;
+            return $entries;
+        });
     }
 
     /**

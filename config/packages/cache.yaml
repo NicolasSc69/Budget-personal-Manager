@@ -14,6 +14,21 @@ framework:
         # APCu (not recommended with heavy random-write workloads as memory fragmentation can cause perf issues)
         #app: cache.adapter.apcu
 
-        # Namespaced pools use the above "app" backend by default
-        #pools:
-            #my.dedicated.cache: null
+        pools:
+            # Results of the balance / sum / report calculations (see App\Service\CalculationCache).
+            # Tag-aware so that every entry is dropped at once as soon as any entity is created,
+            # updated or deleted (see App\EventListener\CalculationCacheInvalidator).
+            cache.calculations:
+                adapter: cache.adapter.filesystem
+                tags: true
+                default_lifetime: 86400
+
+when@test:
+    framework:
+        cache:
+            pools:
+                # In memory: the tests roll their database changes back, a persistent cache would
+                # keep serving results computed from rows that no longer exist.
+                cache.calculations:
+                    adapter: cache.adapter.array
+                    tags: true

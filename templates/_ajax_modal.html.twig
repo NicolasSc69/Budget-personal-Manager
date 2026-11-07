@@ -168,6 +168,9 @@
             const data = await response.json();
             modalInstance().hide();
 
+            // The next page may take a moment to load: show the loading screen meanwhile.
+            window.showPageLoader?.();
+
             if (data.redirect && data.redirect !== window.location.pathname + window.location.search) {
                 window.location = data.redirect;
             } else {

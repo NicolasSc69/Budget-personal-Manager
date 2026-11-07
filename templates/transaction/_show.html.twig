@@ -61,7 +61,7 @@
     </div>
 </div>
 
-<div class="mt-3">
+<div class="mt-3 d-flex flex-wrap flex-sm-nowrap align-items-center gap-2">
     <a href="{{ path('app_transaction_edit', {'id': transaction.id}) }}" class="btn btn-primary" data-transaction-modal data-title="{{ 'Edit transaction'|trans }}">{{ 'Edit'|trans }}</a>
     {{ include('transaction/_delete_form.html.twig') }}
     <a href="#" class="btn btn-outline-secondary" data-role="cancel">{{ 'Close'|trans }}</a>
