@@ -76,6 +76,22 @@
                 [data-bs-theme="dark"] .tx-row-upcoming .tx-account-link {
                     color: #0d47a1;
                 }
+                /* Database download link: a pulsing badge invites to download it after a modification. */
+                .db-download-link:not(.is-modified) .db-modified-dot,
+                .db-download-link:not(.is-modified) .db-modified-label {
+                    display: none;
+                }
+                .db-download-link.is-modified .db-modified-dot {
+                    animation: db-modified-pulse 1.5s ease-in-out infinite;
+                }
+                @keyframes db-modified-pulse {
+                    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, .8); }
+                    50% { box-shadow: 0 0 0 .4rem rgba(220, 53, 69, 0); }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .db-download-link.is-modified .db-modified-dot { animation: none; }
+                }
+
                 /* Content popins: fixed to 95% of the viewport height, the body scrolls inside. */
                 .modal-dialog-tall {
                     height: 95vh;
@@ -185,6 +201,17 @@
                                 <li><a class="dropdown-item" href="{{ path('app_admin_translations') }}">{{ 'Translate interface'|trans }}</a></li>
                                 <li><a class="dropdown-item" href="{{ path('app_admin_tests') }}">{{ 'Unit tests'|trans }}</a></li>
                             </ul>
+                        </li>
+                        {% set dbModified = database_modified_since_export() %}
+                        {% set dbDownloadTitle = dbModified ? 'The database has been modified since its last download: download it'|trans : 'Download the database'|trans %}
+                        <li class="nav-item">
+                            <a class="nav-link db-download-link{{ dbModified ? ' is-modified' : '' }}" id="db-download-link" href="{{ path('app_admin_export') }}" data-no-page-loader title="{{ dbDownloadTitle }}" aria-label="{{ dbDownloadTitle }}">
+                                <span class="position-relative d-inline-block">
+                                    <i class="bi bi-database-down text-danger" aria-hidden="true"></i>
+                                    <span class="db-modified-dot position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" aria-hidden="true"></span>
+                                </span>
+                                <span class="db-modified-label badge text-bg-danger ms-1">{{ 'Unsaved changes'|trans }}</span>
+                            </a>
                         </li>
                     </ul>
                     <div class="d-flex align-items-center gap-2">
@@ -299,6 +326,14 @@
                     }
                 });
             })();
+
+            // The download does not reload the page: hide the "modified" indicator right away.
+            document.getElementById('db-download-link')?.addEventListener('click', function () {
+                var title = {{ 'Download the database'|trans|json_encode|raw }};
+                this.classList.remove('is-modified');
+                this.title = title;
+                this.setAttribute('aria-label', title);
+            });
 
             document.querySelectorAll('.toast').forEach(function (toastEl) {
                 new bootstrap.Toast(toastEl).show();

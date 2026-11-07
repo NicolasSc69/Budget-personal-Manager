@@ -8,6 +8,7 @@ use App\Repository\CategoryRepository;
 use App\Repository\TransactionRepository;
 use App\Service\CalculationCache;
 use App\Service\DatabaseBackupService;
+use App\Service\DatabaseExportTracker;
 use App\Service\TestReportReader;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -223,7 +224,7 @@ final class AdminController extends AbstractController
     }
 
     #[Route('/export', name: 'app_admin_export', methods: ['GET'])]
-    public function export(Connection $connection, TranslatorInterface $translator): Response
+    public function export(Connection $connection, TranslatorInterface $translator, DatabaseExportTracker $databaseExportTracker): Response
     {
         $dbPath = $this->getDatabasePath($connection);
 
@@ -234,6 +235,8 @@ final class AdminController extends AbstractController
         }
 
         $filename = 'compta-export-'.(new \DateTimeImmutable())->format('Y-m-d_His').'.db';
+
+        $databaseExportTracker->markExported();
 
         $response = new BinaryFileResponse($dbPath);
         $response->headers->set('Content-Type', 'application/octet-stream');

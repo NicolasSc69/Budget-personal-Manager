@@ -1257,3 +1257,12 @@ msgstr "Les soldes, sommes et rapports du tableau de bord sont mis en cache par 
 
 msgid "%count% calculation(s)"
 msgstr "%count% calcul(s)"
+
+msgid "Download the database"
+msgstr "Télécharger la base de données"
+
+msgid "The database has been modified since its last download: download it"
+msgstr "La base de données a été modifiée depuis son dernier téléchargement : téléchargez-la"
+
+msgid "Unsaved changes"
+msgstr "Non sauvegardée"

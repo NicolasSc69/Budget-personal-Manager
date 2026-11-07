@@ -7,6 +7,7 @@ use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Service\CurrencyResolver;
 use App\Service\DatabaseBackupService;
+use App\Service\DatabaseExportTracker;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
@@ -18,6 +19,7 @@ class AppExtension extends AbstractExtension
     public function __construct(
         private readonly AccountRepository $accountRepository,
         private readonly DatabaseBackupService $databaseBackupService,
+        private readonly DatabaseExportTracker $databaseExportTracker,
         private readonly AppSettingRepository $appSettingRepository,
         private readonly CurrencyResolver $currencyResolver,
         private readonly TranslatorInterface $translator,
@@ -30,6 +32,7 @@ class AppExtension extends AbstractExtension
         return [
             new TwigFunction('all_accounts', [$this, 'getAllAccounts']),
             new TwigFunction('backup_configured', [$this->databaseBackupService, 'isConfigured']),
+            new TwigFunction('database_modified_since_export', [$this->databaseExportTracker, 'hasChangesSinceExport']),
             new TwigFunction('currency_symbol', [$this, 'getCurrencySymbol']),
             new TwigFunction('default_theme', [$this, 'getDefaultTheme']),
             new TwigFunction('account_nav_message', [$this, 'getAccountNavMessage']),

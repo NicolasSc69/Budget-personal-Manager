@@ -1257,3 +1257,12 @@ msgstr "Balances, sums and dashboard reports are cached per entity: creating, ed
 
 msgid "%count% calculation(s)"
 msgstr "%count% calculation(s)"
+
+msgid "Download the database"
+msgstr "Download the database"
+
+msgid "The database has been modified since its last download: download it"
+msgstr "The database has been modified since its last download: download it"
+
+msgid "Unsaved changes"
+msgstr "Unsaved changes"

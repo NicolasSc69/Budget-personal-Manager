@@ -7,6 +7,7 @@ use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Service\CurrencyResolver;
 use App\Service\DatabaseBackupService;
+use App\Service\DatabaseExportTracker;
 use App\Twig\AppExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +26,7 @@ final class AppExtensionTest extends TestCase
         return new AppExtension(
             $this->createStub(AccountRepository::class),
             $this->createStub(DatabaseBackupService::class),
+            $this->createStub(DatabaseExportTracker::class),
             $appSettingRepository,
             new CurrencyResolver(),
             $this->createStub(TranslatorInterface::class),
