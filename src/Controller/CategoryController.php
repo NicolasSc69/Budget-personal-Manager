@@ -7,6 +7,7 @@ use App\Form\CategoryType;
 use App\Repository\AppSettingRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\TransactionRepository;
+use App\Service\ColorGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -18,6 +19,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[Route('/category')]
 final class CategoryController extends AbstractController
 {
+    public function __construct(private readonly ColorGenerator $colorGenerator)
+    {
+    }
+
     #[Route(name: 'app_category_index', methods: ['GET'])]
     public function index(Request $request, CategoryRepository $categoryRepository, AppSettingRepository $appSettingRepository, TransactionRepository $transactionRepository): Response
     {
@@ -128,26 +133,8 @@ final class CategoryController extends AbstractController
         $count = count($categories);
 
         if ($count > 0) {
-            $hueStep = 360 / $count;
-            $hueOffset = random_int(0, 359);
-            $slots = range(0, $count - 1);
-            shuffle($slots);
-
-            $usedColors = [];
-
-            foreach ($categories as $index => $category) {
-                $hue = ((int) round($slots[$index] * $hueStep) + $hueOffset) % 360;
-                $saturation = random_int(35, 55);
-                $lightness = random_int(35, 48);
-                $color = $this->hslToHex($hue, $saturation, $lightness);
-
-                while (\in_array($color, $usedColors, true)) {
-                    $hue = ($hue + 1) % 360;
-                    $color = $this->hslToHex($hue, $saturation, $lightness);
-                }
-
-                $usedColors[] = $color;
-                $category->setColor($color);
+            foreach ($this->colorGenerator->generateSpreadPalette($count) as $index => $color) {
+                $categories[$index]->setColor($color);
             }
 
             $entityManager->flush();
@@ -294,7 +281,7 @@ final class CategoryController extends AbstractController
             $category = new Category();
             $category->setName($name);
             $category->setParent($parent);
-            $category->setColor($this->generateUniqueColor($usedColors));
+            $category->setColor($this->colorGenerator->generateUnique($usedColors));
 
             $entityManager->persist($category);
             $lookup[$key] = $category;
@@ -326,20 +313,6 @@ final class CategoryController extends AbstractController
         return mb_strtolower($name).'#'.mb_strtolower($parentName ?? '');
     }
 
-    private function generateUniqueColor(array &$usedColors): string
-    {
-        do {
-            $hue = random_int(0, 359);
-            $saturation = random_int(35, 55);
-            $lightness = random_int(35, 48);
-            $color = $this->hslToHex($hue, $saturation, $lightness);
-        } while (\in_array($color, $usedColors, true));
-
-        $usedColors[] = $color;
-
-        return $color;
-    }
-
     /**
      * Matches Category::$color's default value: an untouched color picker on a new category
      * submits this value, which we treat the same as "no color chosen".
@@ -360,36 +333,10 @@ final class CategoryController extends AbstractController
         $color = strtoupper((string) $category->getColor());
 
         if ('' === $color || ($isNew && self::UNSELECTED_COLOR === $color) || \in_array($color, $usedColors, true)) {
-            do {
-                $hue = random_int(0, 359);
-                $saturation = random_int(35, 55);
-                $lightness = random_int(35, 48);
-                $generated = $this->hslToHex($hue, $saturation, $lightness);
-            } while (\in_array($generated, $usedColors, true));
+            $generated = $this->colorGenerator->generateUnique($usedColors);
 
             $category->setColor($generated);
         }
-    }
-
-    private function hslToHex(int $hue, int $saturation, int $lightness): string
-    {
-        $s = $saturation / 100;
-        $l = $lightness / 100;
-
-        $c = (1 - abs(2 * $l - 1)) * $s;
-        $x = $c * (1 - abs(fmod($hue / 60, 2) - 1));
-        $m = $l - $c / 2;
-
-        [$r, $g, $b] = match (true) {
-            $hue < 60 => [$c, $x, 0],
-            $hue < 120 => [$x, $c, 0],
-            $hue < 180 => [0, $c, $x],
-            $hue < 240 => [0, $x, $c],
-            $hue < 300 => [$x, 0, $c],
-            default => [$c, 0, $x],
-        };
-
-        return \sprintf('#%02X%02X%02X', (int) round(($r + $m) * 255), (int) round(($g + $m) * 255), (int) round(($b + $m) * 255));
     }
 
     #[Route('/{id}', name: 'app_category_show', methods: ['GET'], requirements: ['id' => '\d+'])]

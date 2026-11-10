@@ -7,6 +7,13 @@
                     <td>{{ account.label }}</td>
                 </tr>
                 <tr>
+                    <th>{{ 'Color'|trans }}</th>
+                    <td>
+                        <span class="badge" style="background-color: {{ account.color }};">&nbsp;&nbsp;&nbsp;</span>
+                        <span class="text-muted small">{{ account.color }}</span>
+                    </td>
+                </tr>
+                <tr>
                     <th>{{ 'Type'|trans }}</th>
                     <td><span class="badge text-bg-secondary">{{ account.type.name }}</span></td>
                 </tr>

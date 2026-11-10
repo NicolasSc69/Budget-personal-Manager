@@ -160,6 +160,32 @@
                 .sticky-toolbar.is-stuck {
                     box-shadow: 0 .5rem .5rem -.5rem rgba(0,0,0,.25);
                 }
+
+                /* Floating "+" create button (_floating_create_button.html.twig): only shown once the page is scrolled. */
+                .floating-create-btn {
+                    position: fixed;
+                    right: 0;
+                    bottom: 0;
+                    margin: 1.5rem;
+                    width: 3.5rem;
+                    height: 3.5rem;
+                    z-index: 1030;
+                    opacity: 0;
+                    visibility: hidden;
+                    transform: translateY(1rem) scale(.8);
+                    transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+                }
+                .floating-create-btn.is-visible {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: none;
+                    transition: opacity .2s ease, transform .2s ease, visibility 0s;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .floating-create-btn, .floating-create-btn.is-visible {
+                        transition: none;
+                    }
+                }
             </style>
         {% endblock %}
     </head>
@@ -386,6 +412,24 @@
                     updateToolbarShadow();
                     window.addEventListener('scroll', updateToolbarShadow, { passive: true });
                 }
+            })();
+
+            (function () {
+                // Floating "+" create buttons: hidden at the top of the page, shown as soon as it is scrolled.
+                var buttons = document.querySelectorAll('[data-floating-create]');
+                if (!buttons.length) {
+                    return;
+                }
+
+                function updateFloatingCreateButtons() {
+                    var visible = window.scrollY > 0;
+                    buttons.forEach(function (button) {
+                        button.classList.toggle('is-visible', visible);
+                    });
+                }
+
+                updateFloatingCreateButtons();
+                window.addEventListener('scroll', updateFloatingCreateButtons, { passive: true });
             })();
 
             (function () {

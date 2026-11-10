@@ -10,6 +10,7 @@ use App\Service\CurrencyResolver;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -30,6 +31,10 @@ class AccountFormType extends AbstractType
             ->add('label', null, [
                 'label' => 'Label',
                 'help' => 'E.g.: Joint account, Savings account…',
+            ])
+            ->add('color', ColorType::class, [
+                'label' => 'Color',
+                'help' => 'Color of the account on the charts. Each account must have its own color.',
             ])
             ->add('type', EntityType::class, [
                 'label' => 'Account type',

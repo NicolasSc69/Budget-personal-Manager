@@ -1266,3 +1266,21 @@ msgstr "The database has been modified since its last download: download it"
 
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
+
+msgid "This color is already used by another account."
+msgstr "This color is already used by another account."
+
+msgid "Color of the account on the charts. Each account must have its own color."
+msgstr "Color of the account on the charts. Each account must have its own color."
+
+msgid "Account colors have been shuffled randomly."
+msgstr "Account colors have been shuffled randomly."
+
+msgid "Randomly shuffle the colors of all accounts?"
+msgstr "Randomly shuffle the colors of all accounts?"
+
+msgid "Expand all"
+msgstr "Expand all"
+
+msgid "Collapse all"
+msgstr "Collapse all"

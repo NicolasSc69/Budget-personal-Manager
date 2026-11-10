@@ -1,0 +1,14 @@
+{#
+    Round "+" button fixed at the bottom right of the screen, creating a new entity.
+    Hidden at the top of the page (the toolbar's "New …" button is right there) and shown as soon as
+    the page is scrolled, by the script in base.html.twig (class "is-visible").
+
+    Parameters:
+      - url:   creation URL
+      - label: translated label (tooltip + aria-label)
+      - attrs: optional extra HTML attributes, e.g. {'data-ajax-modal': '', 'data-title': label}
+#}
+<a href="{{ url }}" class="btn btn-primary rounded-circle shadow floating-create-btn d-flex align-items-center justify-content-center fs-3" data-floating-create title="{{ label }}" aria-label="{{ label }}"
+    {%- for name, value in attrs|default({}) %} {{ name }}="{{ value }}"{% endfor %}>
+    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+</a>

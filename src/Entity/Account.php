@@ -6,9 +6,11 @@ use App\Repository\AccountRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: AccountRepository::class)]
+#[UniqueEntity(fields: ['color'], message: 'This color is already used by another account.')]
 class Account
 {
     #[ORM\Id]
@@ -20,6 +22,15 @@ class Account
     #[Assert\NotBlank]
     #[Assert\Length(max: 100)]
     private ?string $label = null;
+
+    /**
+     * Color of the account on the charts. Stored upper-cased so the unique index also rejects
+     * the same color written with a different case.
+     */
+    #[ORM\Column(length: 7, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Regex(pattern: '/^#[0-9a-fA-F]{6}$/', message: 'The color must be in hexadecimal format, e.g.: #FF5733.')]
+    private ?string $color = null;
 
     #[ORM\ManyToOne(targetEntity: AccountType::class, inversedBy: 'accounts')]
     #[ORM\JoinColumn(nullable: false)]
@@ -72,6 +83,18 @@ class Account
     public function setLabel(string $label): static
     {
         $this->label = $label;
+
+        return $this;
+    }
+
+    public function getColor(): ?string
+    {
+        return $this->color;
+    }
+
+    public function setColor(?string $color): static
+    {
+        $this->color = null !== $color ? strtoupper($color) : null;
 
         return $this;
     }

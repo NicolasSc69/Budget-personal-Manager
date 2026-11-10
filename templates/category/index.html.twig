@@ -91,6 +91,12 @@
         </div>
     </div>
     {{ include('_pagination.html.twig', {routeName: 'app_category_index', currentPage: currentPage, totalPages: totalPages, queryParams: queryParams, shownCount: shownCount, totalCount: totalCount}) }}
+
+    {{ include('_floating_create_button.html.twig', {
+        url: path('app_category_new'),
+        label: 'New tag'|trans,
+        attrs: {'data-ajax-modal': '', 'data-title': 'New tag'|trans},
+    }) }}
 {% endblock %}
 
 {% block javascripts %}

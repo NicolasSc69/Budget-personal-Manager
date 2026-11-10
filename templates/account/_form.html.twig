@@ -1,5 +1,6 @@
 {{ form_start(form, formAction is defined and formAction ? {'action': formAction} : {}) }}
     {{ form_row(form.label) }}
+    {{ form_row(form.color) }}
     {{ include('account/_account_type_picker.html.twig', {form: form}) }}
     {{ include('account/_person_picker.html.twig', {form: form}) }}
     {{ form_row(form.initialBalance) }}

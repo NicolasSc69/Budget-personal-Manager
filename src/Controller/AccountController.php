@@ -11,6 +11,7 @@ use App\Form\PersonType;
 use App\Repository\AccountRepository;
 use App\Repository\AppSettingRepository;
 use App\Repository\TransactionRepository;
+use App\Service\ColorGenerator;
 use App\Service\RecurringTransactionGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -56,9 +57,13 @@ final class AccountController extends AbstractController
     }
 
     #[Route('/new', name: 'app_account_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, TranslatorInterface $translator): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, AccountRepository $accountRepository, ColorGenerator $colorGenerator, TranslatorInterface $translator): Response
     {
         $account = new Account();
+        // Pre-fill the color picker with a free color, the user can still pick another one.
+        $usedColors = $accountRepository->findUsedColors();
+        $account->setColor($colorGenerator->generateUnique($usedColors));
+
         $form = $this->createForm(AccountFormType::class, $account);
         $form->handleRequest($request);
 
@@ -77,6 +82,37 @@ final class AccountController extends AbstractController
             'accountTypeForm' => $this->createForm(AccountTypeType::class, new AccountType()),
             'personForm' => $this->createForm(PersonType::class, new Person()),
         ]);
+    }
+
+    #[Route('/randomize-colors', name: 'app_account_randomize_colors', methods: ['POST'])]
+    public function randomizeColors(Request $request, AccountRepository $accountRepository, ColorGenerator $colorGenerator, EntityManagerInterface $entityManager, TranslatorInterface $translator): Response
+    {
+        if (!$this->isCsrfTokenValid('randomize_account_colors', $request->getPayload()->getString('_token'))) {
+            $this->addFlash('danger', $translator->trans('Invalid security token, please try again.'));
+
+            return $this->redirectToRoute('app_account_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        $accounts = $accountRepository->findAllOrderedByLabel();
+
+        if ([] !== $accounts) {
+            // account.color is a unique column updated row by row: a new color equal to the current
+            // color of another account would break the index mid-flush, so such palettes are redrawn.
+            $currentColors = array_map(static fn (Account $account): string => (string) $account->getColor(), $accounts);
+            do {
+                $palette = $colorGenerator->generateSpreadPalette(\count($accounts));
+            } while ([] !== array_intersect($palette, $currentColors));
+
+            foreach ($accounts as $index => $account) {
+                $account->setColor($palette[$index]);
+            }
+
+            $entityManager->flush();
+
+            $this->addFlash('success', $translator->trans('Account colors have been shuffled randomly.'));
+        }
+
+        return $this->redirectToRoute('app_account_index', [], Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}', name: 'app_account_show', methods: ['GET'], requirements: ['id' => '\d+'])]

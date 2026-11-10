@@ -59,6 +59,35 @@ final class PageSmokeTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string, 2: ?string}>
+     */
+    public static function provideFloatingCreateButtons(): iterable
+    {
+        yield 'transactions' => ['/transaction', '/transaction/new', 'data-transaction-modal'];
+        yield 'tags' => ['/category', '/category/new', 'data-ajax-modal'];
+        yield 'accounts' => ['/account', '/account/new', null];
+    }
+
+    #[DataProvider('provideFloatingCreateButtons')]
+    public function testListHasAFloatingCreateButtonHiddenUntilScrolled(string $path, string $expectedUrl, ?string $modalAttribute): void
+    {
+        $client = static::createClient();
+        $crawler = $client->request('GET', $path);
+
+        self::assertResponseIsSuccessful();
+        $button = $crawler->filter('a[data-floating-create]');
+        self::assertCount(1, $button);
+        self::assertSame($expectedUrl, $button->attr('href'));
+        self::assertNotEmpty($button->attr('aria-label'));
+        // Hidden on load: base.html.twig's script only adds "is-visible" once the page is scrolled.
+        self::assertStringNotContainsString('is-visible', (string) $button->attr('class'));
+
+        if (null !== $modalAttribute) {
+            self::assertNotNull($button->attr($modalAttribute), \sprintf('The button must open the creation popin (%s).', $modalAttribute));
+        }
+    }
+
     public function testTransactionPdfExportReturnsAPdfFile(): void
     {
         $client = static::createClient();

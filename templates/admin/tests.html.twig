@@ -55,43 +55,169 @@
             {{ 'Last run: %date%'|trans({'%date%': report.generatedAt ? report.generatedAt|date('d/m/Y H:i:s') : '—'}) }}
         </p>
 
-        {% for suite in report.suites %}
-            <div class="card mb-3">
-                <div class="card-header">{{ suite.name }}</div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>{{ 'Test'|trans }}</th>
-                                <th class="text-center">{{ 'Status'|trans }}</th>
-                                <th class="text-end">{{ 'Duration'|trans }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for case in suite.cases %}
-                                <tr>
-                                    <td>
-                                        {{ case.name }}
-                                        {% if case.message %}
-                                            <div class="text-muted small" style="white-space: pre-wrap;">{{ case.message }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        {% if case.status == 'passed' %}
-                                            <span class="badge text-bg-success">{{ 'Passed'|trans }}</span>
-                                        {% elseif case.status == 'skipped' %}
-                                            <span class="badge text-bg-secondary">{{ 'Skipped'|trans }}</span>
-                                        {% else %}
-                                            <span class="badge text-bg-danger">{{ 'Failed'|trans }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end">{{ case.time|number_format(3, ',', ' ') }} s</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        {# Single toggle: "Collapse all" once every item is open, "Expand all" otherwise. Its label is kept in sync by the script below. #}
+        {% set allSuitesOpen = report.suites|filter(suite => suite.cases|filter(c => c.status in ['failed', 'error'])|length == 0)|length == 0 %}
+        <div class="d-flex justify-content-end mb-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="testsToggleAll"
+                    data-label-expand="{{ 'Expand all'|trans }}" data-label-collapse="{{ 'Collapse all'|trans }}"
+                    aria-controls="testSuitesAccordion" aria-expanded="{{ allSuitesOpen ? 'true' : 'false' }}">
+                <i class="bi {{ allSuitesOpen ? 'bi-arrows-collapse' : 'bi-arrows-expand' }}" aria-hidden="true"></i>
+                <span>{{ allSuitesOpen ? 'Collapse all'|trans : 'Expand all'|trans }}</span>
+            </button>
+        </div>
+
+        {# One collapsible item per test class; classes with a failure or an error are open by default. #}
+        <div class="accordion mb-3" id="testSuitesAccordion">
+            {% for suite in report.suites %}
+                {% set failedCount = suite.cases|filter(c => c.status in ['failed', 'error'])|length %}
+                {% set skippedCount = suite.cases|filter(c => c.status == 'skipped')|length %}
+                {% set passedCount = suite.cases|length - failedCount - skippedCount %}
+                {% set suiteTime = suite.cases|reduce((sum, c) => sum + c.time, 0) %}
+                {% set nameParts = suite.name|split('\\') %}
+                {% set isOpen = failedCount > 0 %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="test-suite-{{ loop.index }}-header">
+                        <button class="accordion-button{{ isOpen ? '' : ' collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#test-suite-{{ loop.index }}" aria-expanded="{{ isOpen ? 'true' : 'false' }}" aria-controls="test-suite-{{ loop.index }}">
+                            <span class="d-flex flex-wrap align-items-center gap-2 w-100 me-2">
+                                <i class="bi {{ failedCount > 0 ? 'bi-x-circle-fill text-danger' : 'bi-check-circle-fill text-success' }}" aria-hidden="true"></i>
+                                <span class="fw-semibold">{{ nameParts|last }}</span>
+                                {% if nameParts|length > 1 %}
+                                    <span class="text-muted small">{{ nameParts|slice(0, -1)|join('\\') }}</span>
+                                {% endif %}
+                                <span class="ms-auto d-flex align-items-center gap-1">
+                                    <span class="badge text-bg-success" title="{{ 'Passed'|trans }}"><i class="bi bi-check-lg"></i> {{ passedCount }}</span>
+                                    {% if failedCount > 0 %}
+                                        <span class="badge text-bg-danger" title="{{ 'Failed'|trans }}"><i class="bi bi-x-lg"></i> {{ failedCount }}</span>
+                                    {% endif %}
+                                    {% if skippedCount > 0 %}
+                                        <span class="badge text-bg-secondary" title="{{ 'Skipped'|trans }}"><i class="bi bi-skip-forward"></i> {{ skippedCount }}</span>
+                                    {% endif %}
+                                    <span class="text-muted small ms-1">{{ suiteTime|number_format(3, ',', ' ') }} s</span>
+                                </span>
+                            </span>
+                        </button>
+                    </h2>
+                    <div id="test-suite-{{ loop.index }}" class="accordion-collapse collapse{{ isOpen ? ' show' : '' }}" aria-labelledby="test-suite-{{ loop.index }}-header">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>{{ 'Test'|trans }}</th>
+                                        <th class="text-center">{{ 'Status'|trans }}</th>
+                                        <th class="text-end">{{ 'Duration'|trans }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for case in suite.cases %}
+                                        <tr>
+                                            <td>
+                                                {{ case.name }}
+                                                {% if case.message %}
+                                                    <div class="text-muted small" style="white-space: pre-wrap;">{{ case.message }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if case.status == 'passed' %}
+                                                    <span class="badge text-bg-success">{{ 'Passed'|trans }}</span>
+                                                {% elseif case.status == 'skipped' %}
+                                                    <span class="badge text-bg-secondary">{{ 'Skipped'|trans }}</span>
+                                                {% else %}
+                                                    <span class="badge text-bg-danger">{{ 'Failed'|trans }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">{{ case.time|number_format(3, ',', ' ') }} s</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
+
+        <script>
+        (function () {
+            const accordion = document.getElementById('testSuitesAccordion');
+            const toggle = document.getElementById('testsToggleAll');
+            if (!accordion || !toggle) {
+                return;
+            }
+            const panels = () => accordion.querySelectorAll('.accordion-collapse');
+            // A panel being opened has the "collapsing" class without "show" until its animation ends:
+            // the open state is therefore read from its header button's aria-expanded, set at click time.
+            const allOpen = () => [...accordion.querySelectorAll('.accordion-button')].every((button) => button.getAttribute('aria-expanded') === 'true');
+
+            function renderToggle(open) {
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.querySelector('span').textContent = open ? toggle.dataset.labelCollapse : toggle.dataset.labelExpand;
+                toggle.querySelector('i').className = 'bi ' + (open ? 'bi-arrows-collapse' : 'bi-arrows-expand');
+            }
+
+            // True while "Expand all / Collapse all" opens or closes the items: show()/hide() dispatch
+            // show.bs.collapse synchronously, so the handler below knows the user didn't open the item.
+            let bulkToggling = false;
+
+            toggle.addEventListener('click', () => {
+                const action = allOpen() ? 'hide' : 'show';
+                bulkToggling = true;
+                try {
+                    panels().forEach((panel) => bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false })[action]());
+                } finally {
+                    bulkToggling = false;
+                }
+                renderToggle(action === 'show');
+            });
+
+            // Opening or closing a single item also updates the label.
+            accordion.addEventListener('shown.bs.collapse', () => renderToggle(allOpen()));
+            accordion.addEventListener('hidden.bs.collapse', () => renderToggle(allOpen()));
+
+            // When the user opens one item by clicking its header, the other open items are closed
+            // (classic accordion), then the page scrolls so its header sits right below the sticky
+            // navbar + toolbar, leaving as much room as possible for its tests. Not done through data-bs-parent, which would also make "Expand all"
+            // close every item but the last; "Expand all" neither closes nor scrolls anything.
+            let panelOpenedByClick = null;
+            accordion.addEventListener('show.bs.collapse', (event) => {
+                if (bulkToggling) {
+                    return;
+                }
+                panelOpenedByClick = event.target;
+                panels().forEach((panel) => {
+                    if (panel !== event.target && (panel.classList.contains('show') || panel.classList.contains('collapsing'))) {
+                        bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).hide();
+                    }
+                });
+            });
+            accordion.addEventListener('shown.bs.collapse', (event) => {
+                if (event.target !== panelOpenedByClick) {
+                    return;
+                }
+                panelOpenedByClick = null;
+                scrollIntoViewOnceSettled(event.target);
+            });
+
+            // The items closed above the opened one shrink while it opens: wait for every animation
+            // to end so the position measured is the final one.
+            function scrollIntoViewOnceSettled(panel) {
+                if (accordion.querySelector('.collapsing')) {
+                    requestAnimationFrame(() => scrollIntoViewOnceSettled(panel));
+                    return;
+                }
+
+                const margin = 8;
+                const nav = document.querySelector('nav.sticky-top');
+                const toolbar = document.querySelector('.sticky-toolbar');
+                const topLimit = (nav ? nav.offsetHeight : 0) + (toolbar ? toolbar.offsetHeight : 0) + margin;
+                // Always bring the item's header right below the sticky bars: the most room is left for its tests.
+                const delta = panel.closest('.accordion-item').getBoundingClientRect().top - topLimit;
+
+                if (Math.abs(delta) > 1) {
+                    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    window.scrollBy({ top: delta, behavior: reduceMotion ? 'auto' : 'smooth' });
+                }
+            }
+        })();
+        </script>
     {% endif %}
 {% endblock %}

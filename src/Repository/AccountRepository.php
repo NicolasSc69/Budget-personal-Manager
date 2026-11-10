@@ -26,4 +26,20 @@ class AccountRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Upper-cased colors of every account, optionally leaving one account out (the one being edited).
+     *
+     * @return list<string>
+     */
+    public function findUsedColors(?Account $exclude = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('a')->select('a.color');
+
+        if (null !== $exclude?->getId()) {
+            $queryBuilder->andWhere('a.id <> :excludedId')->setParameter('excludedId', $exclude->getId());
+        }
+
+        return array_values(array_map('strtoupper', array_filter($queryBuilder->getQuery()->getSingleColumnResult())));
+    }
 }

@@ -12,6 +12,12 @@
             <a href="{{ path('app_dashboard') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> {{ 'Back'|trans }}
             </a>
+            <form method="post" action="{{ path('app_account_randomize_colors') }}" data-confirm="{{ 'Randomly shuffle the colors of all accounts?'|trans }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('randomize_account_colors') }}">
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="bi bi-palette"></i> {{ 'Randomize colors'|trans }}
+                </button>
+            </form>
             <a href="{{ path('app_account_new') }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i> {{ 'New account'|trans }}
             </a>
@@ -23,6 +29,7 @@
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
+                        <th>{{ 'Color'|trans }}</th>
                         <th>{{ 'Label'|trans }}</th>
                         <th>{{ 'Type'|trans }}</th>
                         <th>{{ 'Person'|trans }}</th>
@@ -34,6 +41,10 @@
                 <tbody>
                 {% for account in accounts %}
                     <tr>
+                        <td class="text-nowrap">
+                            <span class="badge" style="background-color: {{ account.color }};">&nbsp;&nbsp;&nbsp;</span>
+                            <span class="text-muted small">{{ account.color }}</span>
+                        </td>
                         <td>
                             <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" data-account-nav="{{ account_nav_message(account) }}">{{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}</a>
                         </td>
@@ -59,7 +70,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">{{ 'No account yet'|trans }}</td>
+                        <td colspan="7" class="text-center text-muted py-4">{{ 'No account yet'|trans }}</td>
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -72,4 +83,9 @@
         <a href="{{ path('app_account_type_index') }}" class="text-muted small">{{ 'Manage account types'|trans }}</a>
         <a href="{{ path('app_person_index') }}" class="text-muted small">{{ 'Manage people'|trans }}</a>
     </div>
+
+    {{ include('_floating_create_button.html.twig', {
+        url: path('app_account_new'),
+        label: 'New account'|trans,
+    }) }}
 {% endblock %}

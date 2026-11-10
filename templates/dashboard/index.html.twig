@@ -67,6 +67,7 @@
                                                             {% for entry in personGroup.entries %}
                                                                 <tr>
                                                                     <td>
+                                                                        <span class="badge me-1" style="background-color: {{ entry.account.color }};">&nbsp;</span>
                                                                         <a href="{{ entry.url }}" class="text-decoration-none" data-account-nav="{{ account_nav_message(entry.account) }}">
                                                                             {{ entry.account.label }}{% if personGroup.showPerson and entry.account.person %} ({{ entry.account.person.name }}){% endif %}
                                                                         </a>
@@ -415,8 +416,6 @@
         })();
 
         const chartData = {{ chartDataJson|raw }};
-        const ACCOUNT_PALETTE = ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0', '#6c757d', '#dc3545'];
-
         const isDarkTheme = document.documentElement.getAttribute('data-bs-theme') === 'dark';
         Chart.defaults.color = isDarkTheme ? '#ffffff' : '#000000';
         Chart.defaults.borderColor = isDarkTheme ? '#495057' : '#dee2e6';
@@ -445,8 +444,8 @@
         }
 
         {% if not currentAccount and accountBalances|length > 0 %}
-        // Colors are assigned on the full account list, so an account keeps its color whatever the active tab.
-        const accountColors = chartData.accountLabels.map((label, i) => ACCOUNT_PALETTE[i % ACCOUNT_PALETTE.length]);
+        // Each account is drawn with its own color (set on the account), whatever the active tab.
+        const accountColors = chartData.accountColors;
         // Arrays shown by the chart, refilled in place when the active tab changes (the click handler keeps references to them).
         const visibleAccountLabels = [...chartData.accountLabels];
         const visibleAccountUrls = [...chartData.accountUrls];
