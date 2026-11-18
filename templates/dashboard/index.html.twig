@@ -118,9 +118,9 @@
             <div class="col-md-6">
                 <div class="card h-100">
                     <div class="card-body">
-                        <div class="text-muted small">{{ 'Average interest earned / month'|trans }}</div>
+                        <div class="text-muted small">{{ 'Interest earned this month'|trans }}</div>
                         <div class="fs-3 fw-semibold amount-positive">
-                            {{ savingsStats.averageMonthlyInterest|money }}
+                            {{ savingsStats.currentMonthInterest|money }}
                         </div>
                     </div>
                 </div>
@@ -132,12 +132,13 @@
                         <div class="fs-3 fw-semibold amount-positive">
                             {{ savingsStats.projectedYearEndInterest|money }}
                         </div>
+                        <div class="text-muted small">{{ 'Of which already earned: %amount%'|trans({'%amount%': savingsStats.acquiredInterest|money}) }}</div>
                     </div>
                 </div>
             </div>
         </div>
         <p class="text-muted small mt-n3 mb-4">
-            {{ 'Estimate based on the current balance and the declared rate (%rate% %), without compounding.'|trans({'%rate%': currentAccount.interestRate|number_format(2, ',', ' ')}) }}
+            {{ 'Calculated per fortnight at the declared rate (%rate% %), including scheduled transactions: a deposit earns interest from the next fortnight, a withdrawal stops earning from the start of its fortnight. Interest is credited on December 31.'|trans({'%rate%': currentAccount.interestRate|number_format(2, ',', ' ')}) }}
         </p>
     {% endif %}
 

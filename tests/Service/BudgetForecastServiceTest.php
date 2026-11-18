@@ -32,6 +32,73 @@ final class BudgetForecastServiceTest extends KernelTestCase
         parent::tearDown();
     }
 
+    public function testFortnightInterestsOnAStableCapitalMatchTheAnnualRate(): void
+    {
+        $schedule = $this->forecastService->computeFortnightInterests([], 10000.0, 2026, 1.7);
+
+        self::assertCount(24, $schedule);
+        self::assertSame(['start' => '2026-02-16', 'end' => '2026-02-28'], array_intersect_key($schedule[3], ['start' => 1, 'end' => 1]));
+        self::assertEqualsWithDelta(10000 * 0.017 / 24, $schedule[0]['interest'], 0.0001);
+        self::assertEqualsWithDelta(170.0, array_sum(array_column($schedule, 'interest')), 0.0001);
+    }
+
+    public function testDepositEarnsFromTheNextFortnight(): void
+    {
+        // Made on the 15th: earns from the 16th of the same month (fortnight #6 of 2026).
+        $schedule = $this->forecastService->computeFortnightInterests([['date' => '2026-03-15', 'amount' => 2400.0]], 0.0, 2026, 1.7);
+        self::assertSame(0.0, $schedule[4]['capital']);
+        self::assertSame(2400.0, $schedule[5]['capital']);
+
+        // Made on the 16th: earns from the 1st of the next month.
+        $schedule = $this->forecastService->computeFortnightInterests([['date' => '2026-03-16', 'amount' => 2400.0]], 0.0, 2026, 1.7);
+        self::assertSame(0.0, $schedule[5]['capital']);
+        self::assertSame(2400.0, $schedule[6]['capital']);
+        // 2400 € earning during 18 fortnights (April to December).
+        self::assertEqualsWithDelta(2400 * 0.017 / 24 * 18, array_sum(array_column($schedule, 'interest')), 0.0001);
+    }
+
+    public function testWithdrawalStopsEarningFromTheStartOfItsFortnight(): void
+    {
+        $movements = [
+            ['date' => '2026-03-20', 'amount' => -1000.0],
+            // Re-deposited in the same fortnight: only earns from the next one.
+            ['date' => '2026-03-25', 'amount' => 1000.0],
+        ];
+
+        $schedule = $this->forecastService->computeFortnightInterests($movements, 10000.0, 2026, 1.7);
+
+        self::assertSame(10000.0, $schedule[4]['capital']);
+        self::assertSame(9000.0, $schedule[5]['capital']);
+        self::assertSame(10000.0, $schedule[6]['capital']);
+    }
+
+    public function testFortnightCapitalIsNeverNegative(): void
+    {
+        $schedule = $this->forecastService->computeFortnightInterests([['date' => '2026-01-05', 'amount' => -500.0]], 100.0, 2026, 1.7);
+
+        self::assertSame(0.0, $schedule[0]['capital']);
+        self::assertSame(0.0, $schedule[0]['interest']);
+    }
+
+    public function testProjectedDailyBalancesAddTheInterestOfEndedFortnights(): void
+    {
+        $schedule = $this->forecastService->computeFortnightInterests([], 2400.0, 2026, 1.0);
+        $daily = [
+            ['date' => '2026-11-17', 'balance' => 2400.0],
+            ['date' => '2026-11-18', 'balance' => 2400.0],
+            ['date' => '2026-11-30', 'balance' => 2400.0],
+            ['date' => '2026-12-31', 'balance' => 2400.0],
+        ];
+
+        $projected = $this->forecastService->projectDailyBalancesWithInterest($daily, new \DateTimeImmutable('2026-11-18'), $schedule);
+
+        self::assertSame(['2026-11-18', '2026-11-30', '2026-12-31'], array_column($projected, 'date'));
+        // 2400 × 1 % / 24 = 1 € per fortnight: 21 fortnights ended on Nov 18, 22 on Nov 30, 24 on Dec 31.
+        self::assertEqualsWithDelta(2421.0, $projected[0]['balance'], 0.0001);
+        self::assertEqualsWithDelta(2422.0, $projected[1]['balance'], 0.0001);
+        self::assertEqualsWithDelta(2424.0, $projected[2]['balance'], 0.0001);
+    }
+
     public function testMonthlyReportNetsRefundsPerTagAndCarriesTheBalance(): void
     {
         $account = $this->createAccount(initialBalance: '1000.00');

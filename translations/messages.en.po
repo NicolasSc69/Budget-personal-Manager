@@ -124,8 +124,8 @@ msgstr "Automatically generated from a recurring transaction"
 msgid "Automatically generates the next transactions on their due date."
 msgstr "Automatically generates the next transactions on their due date."
 
-msgid "Average interest earned / month"
-msgstr "Average interest earned / month"
+msgid "Interest earned this month"
+msgstr "Interest earned this month"
 
 msgid "Average salary (%currency%)"
 msgstr "Average salary (%currency%)"
@@ -430,8 +430,8 @@ msgstr "Environment"
 msgid "Estimate based on the average salary between the 1st and the last day of the month."
 msgstr "Estimate based on the average salary between the 1st and the last day of the month."
 
-msgid "Estimate based on the current balance and the declared rate (%rate% %), without compounding."
-msgstr "Estimate based on the current balance and the declared rate (%rate% %), without compounding."
+msgid "Calculated per fortnight at the declared rate (%rate% %), including scheduled transactions: a deposit earns interest from the next fortnight, a withdrawal stops earning from the start of its fortnight. Interest is credited on December 31."
+msgstr "Calculated per fortnight at the declared rate (%rate% %), including scheduled transactions: a deposit earns interest from the next fortnight, a withdrawal stops earning from the start of its fortnight. Interest is credited on December 31."
 
 msgid "Every 3 months"
 msgstr "Every 3 months"
@@ -747,6 +747,9 @@ msgstr "Projected balance"
 
 msgid "Projected balance (with interest)"
 msgstr "Projected balance (with interest)"
+
+msgid "Of which already earned: %amount%"
+msgstr "Of which already earned: %amount%"
 
 msgid "Projected interest by end of %year%"
 msgstr "Projected interest by end of %year%"

@@ -124,8 +124,8 @@ msgstr "Générée automatiquement depuis une opération récurrente"
 msgid "Automatically generates the next transactions on their due date."
 msgstr "Génère automatiquement les prochaines opérations à la date d'échéance."
 
-msgid "Average interest earned / month"
-msgstr "Intérêt moyen gagné / mois"
+msgid "Interest earned this month"
+msgstr "Intérêts gagnés ce mois-ci"
 
 msgid "Average salary (%currency%)"
 msgstr "Salaire moyen (%currency%)"
@@ -430,8 +430,8 @@ msgstr "Environnement"
 msgid "Estimate based on the average salary between the 1st and the last day of the month."
 msgstr "Estimation basée sur le salaire moyen entre le 1er jour du mois et le dernier jour."
 
-msgid "Estimate based on the current balance and the declared rate (%rate% %), without compounding."
-msgstr "Estimation basée sur le solde actuel et le taux déclaré (%rate% %), sans capitalisation."
+msgid "Calculated per fortnight at the declared rate (%rate% %), including scheduled transactions: a deposit earns interest from the next fortnight, a withdrawal stops earning from the start of its fortnight. Interest is credited on December 31."
+msgstr "Calcul par quinzaine au taux déclaré (%rate% %), opérations programmées comprises : un dépôt rapporte à partir de la quinzaine suivante, un retrait cesse de rapporter dès le début de sa quinzaine. Les intérêts sont versés le 31 décembre."
 
 msgid "Every 3 months"
 msgstr "Tous les 3 mois"
@@ -747,6 +747,9 @@ msgstr "Solde prévisionnel approximatif"
 
 msgid "Projected balance (with interest)"
 msgstr "Solde prévisionnel (avec intérêts)"
+
+msgid "Of which already earned: %amount%"
+msgstr "Dont déjà acquis : %amount%"
 
 msgid "Projected interest by end of %year%"
 msgstr "Prévision d'intérêts fin %year%"

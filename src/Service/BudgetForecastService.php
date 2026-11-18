@@ -146,17 +146,87 @@ class BudgetForecastService
     }
 
     /**
-     * Projects the daily balances of a savings account by adding simple (non-compounding) interest
-     * accrued day by day from today onward, based on the account's annual interest rate.
+     * Interest of a savings account for each of the 24 fortnights of the given year, following the
+     * fortnight rule applied to every savings account: interest = capital × annual rate / 24 per fortnight
+     * (1st–15th, 16th–end of month).
+     * - a deposit earns interest from the next fortnight (made on the 1st–15th: from the 16th;
+     *   made on the 16th–end of month: from the 1st of the next month);
+     * - a withdrawal stops earning interest from the start of its fortnight.
+     * Interest is not compounded within the year: it is credited (capitalised) on December 31.
+     * Scheduled (future) transactions are taken into account, so the year total is a forecast.
      *
-     * @param array<int, array{date: string, balance: float}> $dailyBalances
+     * @return list<array{start: string, end: string, capital: float, interest: float}>
+     */
+    public function getSavingsInterestSchedule(Account $account, int $year, float $annualRatePercent): array
+    {
+        return $this->computeFortnightInterests(
+            $this->getBalanceMovements($account),
+            $this->transactionRepository->getInitialBalanceOffset($account),
+            $year,
+            $annualRatePercent
+        );
+    }
+
+    /**
+     * @param list<array{date: string, amount: float}> $movements ordered by date
+     *
+     * @return list<array{start: string, end: string, capital: float, interest: float}>
+     */
+    public function computeFortnightInterests(array $movements, float $openingBalance, int $year, float $annualRatePercent): array
+    {
+        $fortnights = [];
+        $balance = $openingBalance;
+        $index = 0;
+        $count = count($movements);
+
+        for ($month = 1; $month <= 12; ++$month) {
+            $firstDay = new \DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
+            $periods = [
+                [$firstDay->format('Y-m-d'), $firstDay->format('Y-m-15')],
+                [$firstDay->format('Y-m-16'), $firstDay->format('Y-m-t')],
+            ];
+
+            foreach ($periods as [$start, $end]) {
+                // Balance at the start of the fortnight: everything booked before it.
+                while ($index < $count && $movements[$index]['date'] < $start) {
+                    $balance += $movements[$index]['amount'];
+                    ++$index;
+                }
+
+                // Deposits of the fortnight only earn from the next one; its withdrawals stop earning from its start.
+                $withdrawals = 0.0;
+                for ($i = $index; $i < $count && $movements[$i]['date'] <= $end; ++$i) {
+                    if ($movements[$i]['amount'] < 0) {
+                        $withdrawals += $movements[$i]['amount'];
+                    }
+                }
+
+                $capital = max(0.0, $balance + $withdrawals);
+                $fortnights[] = [
+                    'start' => $start,
+                    'end' => $end,
+                    'capital' => $capital,
+                    'interest' => $capital * $annualRatePercent / 100 / 24,
+                ];
+            }
+        }
+
+        return $fortnights;
+    }
+
+    /**
+     * Projects the daily balances of a savings account from today onward by adding the interest
+     * acquired at each day (sum of the fortnights already ended), as computed by getSavingsInterestSchedule().
+     * On December 31 the projection therefore includes the whole year's interest, credited on that day.
+     *
+     * @param array<int, array{date: string, balance: float}>                       $dailyBalances
+     * @param list<array{start: string, end: string, capital: float, interest: float}> $interestSchedule
      *
      * @return array<int, array{date: string, balance: float}>
      */
-    public function projectDailyBalancesWithInterest(array $dailyBalances, \DateTimeImmutable $today, float $currentBalance, float $annualRatePercent): array
+    public function projectDailyBalancesWithInterest(array $dailyBalances, \DateTimeImmutable $today, array $interestSchedule): array
     {
         $todayKey = $today->format('Y-m-d');
-        $dailyRate = $annualRatePercent / 100 / 365;
 
         $projected = [];
         foreach ($dailyBalances as $day) {
@@ -164,10 +234,16 @@ class BudgetForecastService
                 continue;
             }
 
-            $daysElapsed = $today->diff(new \DateTimeImmutable($day['date']))->days;
+            $acquired = 0.0;
+            foreach ($interestSchedule as $fortnight) {
+                if ($fortnight['end'] <= $day['date']) {
+                    $acquired += $fortnight['interest'];
+                }
+            }
+
             $projected[] = [
                 'date' => $day['date'],
-                'balance' => $day['balance'] + $currentBalance * $dailyRate * $daysElapsed,
+                'balance' => $day['balance'] + $acquired,
             ];
         }
 

@@ -87,18 +87,30 @@ class DashboardController extends AbstractController
         if (null !== $account && $account->isSavings()) {
             if (null !== $account->getInterestRate()) {
                 $rate = (float) $account->getInterestRate();
-                $averageMonthlyInterest = $currentBalance * ($rate / 100) / 12;
-                $remainingMonths = 12 - (int) $today->format('n') + 1;
+                $interestSchedule = $forecastService->getSavingsInterestSchedule($account, $currentYear, $rate);
+                $currentMonthKey = $today->format('Y-m');
 
-                $projectedYearEndInterest = $averageMonthlyInterest * $remainingMonths;
+                $currentMonthInterest = 0.0;
+                $acquiredInterest = 0.0;
+                $projectedYearEndInterest = 0.0;
+                foreach ($interestSchedule as $fortnight) {
+                    $projectedYearEndInterest += $fortnight['interest'];
+                    if (str_starts_with($fortnight['start'], $currentMonthKey)) {
+                        $currentMonthInterest += $fortnight['interest'];
+                    }
+                    if ($fortnight['end'] < $today->format('Y-m-d')) {
+                        $acquiredInterest += $fortnight['interest'];
+                    }
+                }
 
                 $savingsStats = [
-                    'averageMonthlyInterest' => $averageMonthlyInterest,
-                    'projectedYearEndInterest' => $projectedYearEndInterest,
-                    'upcomingBalanceWithInterest' => $upcomingBalance + $projectedYearEndInterest,
+                    'currentMonthInterest' => round($currentMonthInterest, 2),
+                    'acquiredInterest' => round($acquiredInterest, 2),
+                    'projectedYearEndInterest' => round($projectedYearEndInterest, 2),
+                    'upcomingBalanceWithInterest' => $upcomingBalance + round($projectedYearEndInterest, 2),
                 ];
 
-                $dailyBalanceForecast = $forecastService->projectDailyBalancesWithInterest($dailyBalances, $today, $currentBalance, $rate);
+                $dailyBalanceForecast = $forecastService->projectDailyBalancesWithInterest($dailyBalances, $today, $interestSchedule);
             }
 
             if (null !== $account->getMaxAmount() && (float) $account->getMaxAmount() > 0) {
