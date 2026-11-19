@@ -8,6 +8,13 @@ if [ "$1" = 'apache2-foreground' ]; then
     php bin/console doctrine:migrations:migrate --no-interaction
     php bin/console cache:warmup
 
+    # The cache pools (calculation cache with the balances, reports and dashboard
+    # charts, cache.app, Doctrine result cache…) live in var/share, in the
+    # persisted "var" volume, and are not emptied by cache:clear: without this, a
+    # new image would keep serving results computed by the previous code until an
+    # entity changes or their lifetime expires. --all also covers pools added later.
+    php bin/console cache:pool:clear --all
+
     # var/cache/test also lives in the persisted "var" volume, but it's only ever
     # written by the Admin > Unit tests page running phpunit under APP_ENV=test
     # (see TestReportController), never by this entrypoint's own APP_ENV=prod

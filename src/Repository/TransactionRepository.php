@@ -42,17 +42,18 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Net amount (sum of signed amounts, so refunds offset expenses) of each category's
-     * own transactions over the period.
+     * Income (sum of positive amounts) and expense (sum of negative amounts, kept negative) of each
+     * category's own transactions over the period: a tag holding both is counted on both sides.
      *
-     * @return array<int, array{category: Category, netTotal: float}>
+     * @return array<int, array{category: Category, incomeTotal: float, expenseTotal: float}>
      */
     public function sumByCategorySince(\DateTimeImmutable $since, ?Account $account = null, ?\DateTimeImmutable $until = null): array
     {
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select(
                 'c AS category',
-                'SUM(t.amount) AS netTotal'
+                'SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END) AS incomeTotal',
+                'SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END) AS expenseTotal'
             )
             ->from(Category::class, 'c')
             ->join('c.transactions', 't')

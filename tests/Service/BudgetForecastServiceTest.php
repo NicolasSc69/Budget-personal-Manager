@@ -99,7 +99,7 @@ final class BudgetForecastServiceTest extends KernelTestCase
         self::assertEqualsWithDelta(2424.0, $projected[2]['balance'], 0.0001);
     }
 
-    public function testMonthlyReportNetsRefundsPerTagAndCarriesTheBalance(): void
+    public function testMonthlyReportSplitsIncomeAndExpenseBySignAndCarriesTheBalance(): void
     {
         $account = $this->createAccount(initialBalance: '1000.00');
         $groceries = $this->createCategory('Groceries');
@@ -107,7 +107,7 @@ final class BudgetForecastServiceTest extends KernelTestCase
 
         // Before the window: only counts in the starting balance.
         $this->createTransaction($account, $groceries, '2023-12-15', '-100.00');
-        // January: a refund offsets its tag's expense instead of counting as income.
+        // January: a positive amount counts as income even if its tag also holds expenses.
         $this->createTransaction($account, $groceries, '2024-01-05', '-80.00');
         $this->createTransaction($account, $groceries, '2024-01-20', '30.00');
         $this->createTransaction($account, $salary, '2024-01-28', '2000.00');
@@ -121,8 +121,8 @@ final class BudgetForecastServiceTest extends KernelTestCase
 
         self::assertSame(['2024-01', '2024-02', '2024-03'], array_column($report, 'key'));
 
-        self::assertEqualsWithDelta(2000.0, $report[0]['income'], 0.001);
-        self::assertEqualsWithDelta(50.0, $report[0]['expense'], 0.001);
+        self::assertEqualsWithDelta(2030.0, $report[0]['income'], 0.001);
+        self::assertEqualsWithDelta(80.0, $report[0]['expense'], 0.001);
         self::assertEqualsWithDelta(1950.0, $report[0]['net'], 0.001);
         self::assertEqualsWithDelta(1000 - 100 - 80 + 30 + 2000, $report[0]['balance'], 0.001);
 
@@ -133,6 +133,34 @@ final class BudgetForecastServiceTest extends KernelTestCase
         // No movement in March: the balance is carried over.
         self::assertEqualsWithDelta(0.0, $report[2]['expense'], 0.001);
         self::assertEqualsWithDelta(2810.0, $report[2]['balance'], 0.001);
+    }
+
+    public function testCategoryBreakdownCountsATagOnBothSides(): void
+    {
+        $account = $this->createAccount();
+        $mixed = $this->createCategory('Mixed');
+        $expenseOnly = $this->createCategory('Expense only');
+
+        $this->createTransaction($account, $mixed, '2024-01-05', '-2500.00');
+        $this->createTransaction($account, $mixed, '2024-01-10', '500.00');
+        $this->createTransaction($account, $mixed, '2024-01-15', '700.00');
+        $this->createTransaction($account, $expenseOnly, '2024-01-20', '-30.00');
+        // Outside the period: ignored.
+        $this->createTransaction($account, $mixed, '2024-03-01', '-999.00');
+        $this->entityManager->flush();
+
+        $since = new \DateTimeImmutable('2024-01-01');
+        $until = new \DateTimeImmutable('2024-01-31');
+
+        $income = $this->forecastService->getCategoryBreakdown($since, $until, $account, 'income');
+        self::assertSame([$mixed->getFullName()], array_column($income, 'name'));
+        self::assertEqualsWithDelta(1200.0, $income[0]['total'], 0.001);
+
+        $expense = $this->forecastService->getCategoryBreakdown($since, $until, $account, 'expense');
+        self::assertSame([$mixed->getFullName(), $expenseOnly->getFullName()], array_column($expense, 'name'));
+        // Expenses are shown in absolute value.
+        self::assertEqualsWithDelta(2500.0, $expense[0]['total'], 0.001);
+        self::assertEqualsWithDelta(30.0, $expense[1]['total'], 0.001);
     }
 
     public function testDailyBalancesStartFromThePreviousBalanceAndCarryOver(): void

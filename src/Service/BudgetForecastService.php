@@ -38,9 +38,10 @@ class BudgetForecastService
             $untilKey = $until->format('Y-m');
 
             $monthlyBalances = [];
-            // Net amount per month and per category: a refund offsets its category's expense instead of
-            // counting as income (same rule as getCategoryBreakdown()).
-            $monthlyCategoryNet = [];
+            // Positive amounts count as income and negative ones as expense, whatever their tag
+            // (same rule as getCategoryBreakdown()).
+            $monthlyIncome = [];
+            $monthlyExpense = [];
             $balance = $this->transactionRepository->getInitialBalanceOffset($account);
             $lastBalanceBeforeWindow = $balance;
 
@@ -59,17 +60,15 @@ class BudgetForecastService
                     continue;
                 }
 
-                $categoryId = $movement['categoryId'] ?? 0;
-                $monthlyCategoryNet[$key][$categoryId] = ($monthlyCategoryNet[$key][$categoryId] ?? 0.0) + $amount;
+                if ($amount > 0) {
+                    $monthlyIncome[$key] = ($monthlyIncome[$key] ?? 0.0) + $amount;
+                } elseif ($amount < 0) {
+                    $monthlyExpense[$key] = ($monthlyExpense[$key] ?? 0.0) - $amount;
+                }
             }
 
-            $monthlyIncome = [];
-            $monthlyExpense = [];
-            foreach ($monthlyCategoryNet as $key => $netByCategory) {
-                $netByCategory = array_map(static fn (float $net) => round($net, 2), $netByCategory);
-                $monthlyIncome[$key] = array_sum(array_filter($netByCategory, static fn (float $net) => $net > 0));
-                $monthlyExpense[$key] = -array_sum(array_filter($netByCategory, static fn (float $net) => $net < 0));
-            }
+            $monthlyIncome = array_map(static fn (float $total) => round($total, 2), $monthlyIncome);
+            $monthlyExpense = array_map(static fn (float $total) => round($total, 2), $monthlyExpense);
 
             $months = [];
             $cursor = $since;
@@ -260,10 +259,11 @@ class BudgetForecastService
         return $this->calculationCache->get(__METHOD__, [CalculationCache::TRANSACTION, CalculationCache::ACCOUNT, CalculationCache::CATEGORY], ['since' => $since, 'until' => $until, 'account' => $account, 'type' => $type], function () use ($since, $until, $account, $type) {
             $entries = [];
             foreach ($this->transactionRepository->sumByCategorySince($since, $account, $until) as $row) {
-                // Net per category: a refund reduces its category's expense instead of being counted as income,
-                // so the amount matches the sum shown on the filtered transaction list.
-                $net = round((float) $row['netTotal'], 2);
-                $total = 'income' === $type ? $net : -$net;
+                // A tag holding both positive and negative transactions shows up in both charts:
+                // its positive amounts as income, its negative ones (in absolute value) as expense.
+                $total = 'income' === $type
+                    ? round((float) $row['incomeTotal'], 2)
+                    : round(-(float) $row['expenseTotal'], 2);
 
                 if ($total <= 0) {
                     continue;

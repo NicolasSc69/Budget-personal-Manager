@@ -132,6 +132,37 @@ final class TransactionRepositoryTest extends KernelTestCase
         self::assertSame(3, $this->transactionRepository->countFiltered(category: $category));
     }
 
+    public function testSumByCategorySinceSplitsIncomeAndExpense(): void
+    {
+        $suffix = uniqid();
+
+        $account = $this->createAccount($suffix);
+        $otherAccount = $this->createAccount('other-'.$suffix);
+        $mixed = $this->createCategory('Mixed '.$suffix);
+        $expenseOnly = $this->createCategory('Expense only '.$suffix);
+
+        // A tag holding both signs: positive and negative amounts are summed separately, not netted.
+        $this->createTransaction($account, $mixed, 'Out', '2024-01-05', '-2000.00');
+        $this->createTransaction($account, $mixed, 'In', '2024-01-10', '1500.00');
+        $this->createTransaction($account, $mixed, 'In again', '2024-01-12', '200.00');
+        $this->createTransaction($account, $expenseOnly, 'Out', '2024-01-15', '-30.00');
+        // Outside the period or on another account: ignored.
+        $this->createTransaction($account, $mixed, 'Too late', '2024-02-01', '-999.00');
+        $this->createTransaction($otherAccount, $mixed, 'Other account', '2024-01-10', '777.00');
+
+        $this->entityManager->flush();
+
+        $totals = [];
+        foreach ($this->transactionRepository->sumByCategorySince(new \DateTimeImmutable('2024-01-01'), $account, new \DateTimeImmutable('2024-01-31')) as $row) {
+            $totals[$row['category']->getName()] = [(float) $row['incomeTotal'], (float) $row['expenseTotal']];
+        }
+
+        self::assertSame([
+            'Expense only '.$suffix => [0.0, -30.0],
+            'Mixed '.$suffix => [1700.0, -2000.0],
+        ], $totals);
+    }
+
     public function testFindBalanceMovementsUsesTheEffectiveDateAndOrder(): void
     {
         $suffix = uniqid();
