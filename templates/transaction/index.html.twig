@@ -15,6 +15,14 @@
 {% import _self as helpers %}
 
 {% block body %}
+    {% if not filterAccount %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <strong>{{ 'Warning:'|trans }}</strong> {{ 'this is the list of all transactions, across all accounts.'|trans }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ 'Close'|trans }}"></button>
+        </div>
+    {% endif %}
+
     <div class="mb-2">
         <div class="w-100">
             <h1 class="h3 w-100 mb-0">{{ 'Transactions'|trans }}</h1>
@@ -230,7 +238,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="text-decoration-none tx-account-link" data-account-nav="{{ account_nav_message(transaction.account) }}">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
+                            <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="badge text-decoration-none tx-account-link" style="background-color: {{ transaction.account.color }};" data-account-nav="{{ account_nav_message(transaction.account) }}">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
                         </td>
                         <td>
                             <a href="{{ path('app_transaction_index', queryParams|merge({'category': transaction.category.id})) }}" class="badge text-decoration-none" style="background-color: {{ transaction.category.color }};">

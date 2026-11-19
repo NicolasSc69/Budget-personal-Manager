@@ -67,8 +67,7 @@
                                                             {% for entry in personGroup.entries %}
                                                                 <tr>
                                                                     <td>
-                                                                        <span class="badge me-1" style="background-color: {{ entry.account.color }};">&nbsp;</span>
-                                                                        <a href="{{ entry.url }}" class="text-decoration-none" data-account-nav="{{ account_nav_message(entry.account) }}">
+                                                                        <a href="{{ entry.url }}" class="badge text-decoration-none" style="background-color: {{ entry.account.color }};" data-account-nav="{{ account_nav_message(entry.account) }}">
                                                                             {{ entry.account.label }}{% if personGroup.showPerson and entry.account.person %} ({{ entry.account.person.name }}){% endif %}
                                                                         </a>
                                                                         {% if entry.pendingRecurringCount + entry.sundayRecurringCount > 0 %}
@@ -240,7 +239,7 @@
                             </td>
                             {% if not currentAccount %}
                                 <td>
-                                    {{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}
+                                    <a href="{{ path('app_dashboard_account', {'id': transaction.account.id}) }}" class="badge text-decoration-none" style="background-color: {{ transaction.account.color }};" data-account-nav="{{ account_nav_message(transaction.account) }}">{{ transaction.account.label }}{% if transaction.account.person %} ({{ transaction.account.person.name }}){% endif %}</a>
                                 </td>
                             {% endif %}
                             <td>

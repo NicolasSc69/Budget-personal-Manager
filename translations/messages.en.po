@@ -1287,3 +1287,9 @@ msgstr "Expand all"
 
 msgid "Collapse all"
 msgstr "Collapse all"
+
+msgid "Warning:"
+msgstr "Warning:"
+
+msgid "this is the list of all transactions, across all accounts."
+msgstr "this is the list of all transactions, across all accounts."

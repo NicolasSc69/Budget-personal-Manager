@@ -1287,3 +1287,9 @@ msgstr "Tout déplier"
 
 msgid "Collapse all"
 msgstr "Tout replier"
+
+msgid "Warning:"
+msgstr "Attention :"
+
+msgid "this is the list of all transactions, across all accounts."
+msgstr "il s'agit de la liste de toutes les opérations, tous comptes confondus."

@@ -46,7 +46,7 @@
                             <span class="text-muted small">{{ account.color }}</span>
                         </td>
                         <td>
-                            <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" data-account-nav="{{ account_nav_message(account) }}">{{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}</a>
+                            <a href="{{ path('app_dashboard_account', {'id': account.id}) }}" class="badge text-decoration-none" style="background-color: {{ account.color }};" data-account-nav="{{ account_nav_message(account) }}">{{ account.label }}{% if account.person %} ({{ account.person.name }}){% endif %}</a>
                         </td>
                         <td><span class="badge text-bg-secondary">{{ account.type.name }}</span></td>
                         <td>
