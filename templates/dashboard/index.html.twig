@@ -167,8 +167,8 @@
                     <a href="{{ path('app_transaction_new', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-primary" data-transaction-modal data-title="{{ 'New transaction'|trans }}">
                         <i class="bi bi-plus-lg"></i> {{ 'New transaction'|trans }}
                     </a>
-                    <a href="{{ path('app_transaction_index', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-outline-secondary">
-                        {{ 'View all transactions'|trans }}
+                    <a href="{{ path('app_transaction_index', currentAccount ? {'account': currentAccount.id} : {}) }}" class="btn btn-sm btn-warning">
+                        <i class="bi bi-list-ul"></i> {{ 'View all transactions'|trans }}
                     </a>
                     {{ include('transaction/_recurring_actions.html.twig', {account: currentAccount, pendingCount: pendingRecurringCount, sundayCount: sundayRecurringCount, small: true}) }}
                 </div>
