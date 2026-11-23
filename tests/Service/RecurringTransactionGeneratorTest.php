@@ -184,6 +184,64 @@ final class RecurringTransactionGeneratorTest extends KernelTestCase
         self::assertSame('2026-11-05', $template->getDebitDate()->format('Y-m-d'));
     }
 
+    public function testEndDateSetOnAnOccurrenceStopsTheSeries(): void
+    {
+        $template = $this->createMonthlyTemplate('-2 months');
+        $this->generator->generateDueOccurrences();
+        $this->entityManager->refresh($template);
+
+        // End date entered on the latest occurrence only, before next month.
+        $series = $this->findSeries($template);
+        end($series)->setRecurrenceEndDate(new \DateTimeImmutable('last day of this month'));
+        $this->entityManager->flush();
+
+        self::assertFalse($this->isPending($template));
+        self::assertSame(0, $this->generator->duplicateMonthlyTemplatesToNextMonth([$template->getId()]));
+    }
+
+    public function testEarlierEndDateOnAnOccurrenceWinsOverTheTemplateOne(): void
+    {
+        $template = $this->createMonthlyTemplate('-2 months');
+        $template->setRecurrenceEndDate(new \DateTimeImmutable('last day of next month'));
+        $this->generator->generateDueOccurrences();
+        $this->entityManager->refresh($template);
+
+        $series = $this->findSeries($template);
+        end($series)->setRecurrenceEndDate(new \DateTimeImmutable('last day of this month'));
+        $this->entityManager->flush();
+
+        self::assertFalse($this->isPending($template));
+    }
+
+    public function testGenerationStopsAtTheEndDate(): void
+    {
+        $template = $this->createMonthlyTemplate('-3 months');
+        $template->setRecurrenceEndDate(new \DateTimeImmutable('today -45 days'));
+        $this->entityManager->flush();
+
+        $this->generator->generateDueOccurrences();
+
+        foreach ($this->findSeries($template) as $transaction) {
+            self::assertLessThanOrEqual(new \DateTimeImmutable('today -45 days'), $transaction->getDate());
+        }
+    }
+
+    public function testEditingTheEndDateOfAnOccurrenceAppliesToTheWholeSeries(): void
+    {
+        $template = $this->createMonthlyTemplate('-2 months');
+        $this->generator->generateDueOccurrences();
+        $this->entityManager->refresh($template);
+
+        $endDate = new \DateTimeImmutable('last day of this month');
+        $occurrence = $template->getRecurrenceChildren()->first();
+        $occurrence->setRecurrenceEndDate($endDate);
+        $this->generator->propagateRecurrenceEndDate($occurrence);
+
+        foreach ($this->findSeries($template) as $transaction) {
+            self::assertSame($endDate->format('Y-m-d'), $transaction->getRecurrenceEndDate()?->format('Y-m-d'));
+        }
+    }
+
     private function setRecurringCheckDay(int $day): void
     {
         $this->appSettingRepository->getSettings()->setRecurringCheckDay($day);

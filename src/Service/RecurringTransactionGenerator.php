@@ -36,9 +36,11 @@ class RecurringTransactionGenerator
             $changed = $this->markGeneratedUntil($template, $lastOccurrenceDate) || $changed;
 
             $nextDate = $this->addInterval($template->getRecurrenceGeneratedUntil(), $template->getRecurrence());
+            $endDate = self::resolveSeriesEndDate($template);
+            $lastDate = null !== $endDate && $endDate < $today ? $endDate : $today;
 
             $iterations = 0;
-            while ($nextDate <= $today && $iterations < self::MAX_OCCURRENCES_PER_TEMPLATE) {
+            while ($nextDate <= $lastDate && $iterations < self::MAX_OCCURRENCES_PER_TEMPLATE) {
                 $this->entityManager->persist($this->createOccurrence($template, $nextDate));
                 ++$generated;
                 ++$iterations;
@@ -90,7 +92,8 @@ class RecurringTransactionGenerator
                 continue;
             }
 
-            if (null !== $template->getRecurrenceEndDate() && $nextDate > $template->getRecurrenceEndDate()) {
+            $endDate = self::resolveSeriesEndDate($template);
+            if (null !== $endDate && $nextDate > $endDate) {
                 continue;
             }
 
@@ -137,6 +140,42 @@ class RecurringTransactionGenerator
         }
 
         return $duplicated;
+    }
+
+    /**
+     * The end date applies to the whole series: whichever transaction of the series it was edited on
+     * (template or occurrence), copy it to the template and every occurrence.
+     */
+    public function propagateRecurrenceEndDate(Transaction $transaction): void
+    {
+        $template = $transaction->getRecurrenceParent() ?? $transaction;
+        if (!$template->isRecurring()) {
+            return;
+        }
+
+        $endDate = $transaction->getRecurrenceEndDate();
+        $template->setRecurrenceEndDate($endDate);
+        foreach ($template->getRecurrenceChildren() as $child) {
+            $child->setRecurrenceEndDate($endDate);
+        }
+    }
+
+    /**
+     * End date of a series: the earliest end date set on the template or any of its occurrences
+     * (an end date may have been entered on an occurrence and differ from the template's one).
+     */
+    public static function resolveSeriesEndDate(Transaction $template): ?\DateTimeImmutable
+    {
+        $endDate = $template->getRecurrenceEndDate();
+
+        foreach ($template->getRecurrenceChildren() as $child) {
+            $childEndDate = $child->getRecurrenceEndDate();
+            if (null !== $childEndDate && (null === $endDate || $childEndDate < $endDate)) {
+                $endDate = $childEndDate;
+            }
+        }
+
+        return $endDate;
     }
 
     /**

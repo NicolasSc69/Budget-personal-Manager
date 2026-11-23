@@ -517,7 +517,7 @@ final class TransactionController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_transaction_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
-    public function edit(Request $request, Transaction $transaction, EntityManagerInterface $entityManager, TransactionRepository $transactionRepository, TranslatorInterface $translator): Response
+    public function edit(Request $request, Transaction $transaction, EntityManagerInterface $entityManager, TransactionRepository $transactionRepository, TranslatorInterface $translator, RecurringTransactionGenerator $recurringTransactionGenerator): Response
     {
         $form = $this->createForm(TransactionType::class, $transaction, [
             'redirect_to' => $request->query->get('redirect_to'),
@@ -528,6 +528,7 @@ final class TransactionController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $recurringTransactionGenerator->propagateRecurrenceEndDate($transaction);
             $entityManager->flush();
 
             $this->addFlash('success', $translator->trans('The transaction has been updated.'));
