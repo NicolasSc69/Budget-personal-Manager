@@ -127,6 +127,9 @@ msgstr "Génère automatiquement les prochaines opérations à la date d'échéa
 msgid "Current balance + upcoming transactions of the current month, excluding tags marked Excluded from forecast."
 msgstr "Solde actuel + opérations à venir du mois en cours, hors étiquettes marquées Exclue du prévisionnel."
 
+msgid "Generating the PDF…"
+msgstr "Création du PDF en cours…"
+
 msgid "Interest earned this month"
 msgstr "Intérêts gagnés ce mois-ci"
 
@@ -180,6 +183,9 @@ msgstr "Dernière"
 
 msgid "Pagination"
 msgstr "Pagination"
+
+msgid "The PDF export failed, please try again."
+msgstr "L'export PDF a échoué, veuillez réessayer."
 
 msgid "Today"
 msgstr "Aujourd'hui"

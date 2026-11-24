@@ -40,7 +40,7 @@
             {{ include('transaction/_recurring_actions.html.twig', {account: filterAccount, pendingCount: pendingRecurringCount, sundayCount: sundayRecurringCount, current: null, alignStart: true}) }}
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ path('app_transaction_export_pdf', queryParams) }}" data-no-page-loader class="btn btn-outline-secondary">
+            <a href="{{ path('app_transaction_export_pdf', queryParams) }}" data-no-page-loader data-pdf-export class="btn btn-outline-secondary">
                 <i class="bi bi-file-earmark-pdf"></i> {{ 'Export PDF'|trans }}
             </a>
             <a href="{{ filterAccount ? path('app_dashboard_account', {'id': filterAccount.id}) : path('app_dashboard') }}" class="btn btn-outline-secondary"{% if filterAccount %} data-account-nav="{{ account_nav_message(filterAccount) }}"{% endif %}>
@@ -403,6 +403,61 @@
         }));
 
         updateBulkBar();
+    })();
+
+    (function () {
+        // PDF export: the file is generated server side (can take a few seconds), so it is downloaded
+        // through fetch() while the full screen loader is shown, then saved from a blob URL.
+        const generatingLabel = {{ 'Generating the PDF…'|trans|json_encode|raw }};
+        const failedLabel = {{ 'The PDF export failed, please try again.'|trans|json_encode|raw }};
+        let exporting = false;
+
+        function filenameFrom(response) {
+            const match = /filename="?([^";]+)"?/i.exec(response.headers.get('Content-Disposition') || '');
+
+            return match ? match[1] : 'transactions.pdf';
+        }
+
+        document.querySelectorAll('[data-pdf-export]').forEach((link) => {
+            link.addEventListener('click', async (event) => {
+                if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                    return;
+                }
+                event.preventDefault();
+                if (exporting) {
+                    return;
+                }
+
+                exporting = true;
+                link.classList.add('disabled');
+                link.setAttribute('aria-disabled', 'true');
+                window.showAccountNavOverlay?.(generatingLabel);
+
+                try {
+                    const response = await fetch(link.href);
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+
+                    const url = URL.createObjectURL(await response.blob());
+                    const download = document.createElement('a');
+                    download.href = url;
+                    download.download = filenameFrom(response);
+                    download.setAttribute('data-no-page-loader', '');
+                    document.body.appendChild(download);
+                    download.click();
+                    download.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                } catch (error) {
+                    window.alert(failedLabel);
+                } finally {
+                    window.hidePageLoader?.();
+                    link.classList.remove('disabled');
+                    link.removeAttribute('aria-disabled');
+                    exporting = false;
+                }
+            });
+        });
     })();
     </script>
 {% endblock %}

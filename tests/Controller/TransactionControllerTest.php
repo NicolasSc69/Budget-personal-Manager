@@ -136,6 +136,21 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseHeaderSame('Content-Type', 'application/pdf');
     }
 
+    public function testPdfExportButtonIsHandledByTheLoadingScript(): void
+    {
+        $account = $this->createAccount();
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/transaction', ['account' => $account->getId()]);
+
+        self::assertResponseIsSuccessful();
+        $link = $crawler->filter('a[data-pdf-export]');
+        self::assertCount(1, $link);
+        self::assertStringStartsWith('/transaction/export/pdf', (string) $link->attr('href'));
+        // Kept out of the generic page loader: the export script shows and hides the loader itself.
+        self::assertNotNull($link->attr('data-no-page-loader'));
+    }
+
     public function testUnknownPersonIsIgnored(): void
     {
         $this->client->request('GET', '/transaction', ['person' => 999999]);

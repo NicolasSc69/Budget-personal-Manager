@@ -127,6 +127,9 @@ msgstr "Automatically generates the next transactions on their due date."
 msgid "Current balance + upcoming transactions of the current month, excluding tags marked Excluded from forecast."
 msgstr "Current balance + upcoming transactions of the current month, excluding tags marked Excluded from forecast."
 
+msgid "Generating the PDF…"
+msgstr "Generating the PDF…"
+
 msgid "Interest earned this month"
 msgstr "Interest earned this month"
 
@@ -180,6 +183,9 @@ msgstr "Last"
 
 msgid "Pagination"
 msgstr "Pagination"
+
+msgid "The PDF export failed, please try again."
+msgstr "The PDF export failed, please try again."
 
 msgid "Today"
 msgstr "Today"
