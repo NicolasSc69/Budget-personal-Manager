@@ -9,6 +9,7 @@ use App\Entity\Person;
 use App\Entity\Transaction;
 use App\Repository\AppSettingRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -91,6 +92,45 @@ final class TransactionControllerTest extends WebTestCase
         $this->entityManager->flush();
 
         $this->client->request('GET', '/transaction/export/pdf', ['person' => $person->getId()]);
+
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'application/pdf');
+    }
+
+    /**
+     * The projected balance only shows its main figure: the old "Theoretical" estimate based on the
+     * account's average salary is gone from the transaction list and the dashboard.
+     */
+    #[DataProvider('projectedBalancePages')]
+    public function testProjectedBalanceNoLongerShowsTheTheoreticalFigure(string $urlPattern): void
+    {
+        $account = $this->createAccount();
+        $account->setAverageSalary('2500.00');
+        $this->entityManager->flush();
+
+        $this->client->request('GET', \sprintf($urlPattern, $account->getId()));
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $this->client->getResponse()->getContent();
+        // The interface language depends on the app settings stored in the database (en or fr).
+        self::assertMatchesRegularExpression('/Projected balance|Solde prévisionnel approximatif/u', $content);
+        self::assertStringNotContainsString('Theoretical', $content);
+        self::assertStringNotContainsString('Théorique', $content);
+    }
+
+    public static function projectedBalancePages(): iterable
+    {
+        yield 'transaction list' => ['/transaction?account=%d'];
+        yield 'account dashboard' => ['/compte/%d'];
+    }
+
+    public function testPdfExportOfASingleAccountStillRendersTheProjectedBalance(): void
+    {
+        $account = $this->createAccount();
+        $account->setAverageSalary('2500.00');
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/transaction/export/pdf', ['account' => $account->getId()]);
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'application/pdf');

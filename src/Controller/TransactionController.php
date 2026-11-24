@@ -90,11 +90,6 @@ final class TransactionController extends AbstractController
         $today = new \DateTimeImmutable('today');
         $currentBalance = $transactionRepository->sumUntil($today, $account);
         $upcomingBalance = $transactionRepository->sumAll($account);
-        $averageSalaryTotal = null !== $account
-            ? (float) ($account->getAverageSalary() ?? 0)
-            : array_sum(array_map(static fn ($a) => (float) ($a->getAverageSalary() ?? 0), $allAccounts));
-        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
-        $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
         $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
@@ -141,7 +136,6 @@ final class TransactionController extends AbstractController
             'totalCount' => $totalTransactions,
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
-            'forecastBalance' => $forecastBalance,
             'forecastCheck' => $forecastCheck,
             'filteredAmountSum' => $filteredAmountSum,
             'balanceDate' => $forecastService->formatDate($today),
@@ -165,11 +159,6 @@ final class TransactionController extends AbstractController
         $today = new \DateTimeImmutable('today');
         $currentBalance = $transactionRepository->sumUntil($today, $account);
         $upcomingBalance = $transactionRepository->sumAll($account);
-        $averageSalaryTotal = null !== $account
-            ? (float) ($account->getAverageSalary() ?? 0)
-            : array_sum(array_map(static fn ($a) => (float) ($a->getAverageSalary() ?? 0), $accountRepository->findAllOrderedByLabel()));
-        $currentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
-        $forecastBalance = $averageSalaryTotal + $currentMonthBalance;
         $upcomingCurrentMonthBalance = $transactionRepository->sumFiltered(account: $account, currentMonthOnly: true, upcomingOnly: true, excludeForecastExcluded: true, byEffectiveDate: true);
         $forecastCheck = $currentBalance + $upcomingCurrentMonthBalance;
 
@@ -222,7 +211,6 @@ final class TransactionController extends AbstractController
             'generatedAt' => new \DateTimeImmutable(),
             'currentBalance' => $currentBalance,
             'upcomingBalance' => $upcomingBalance,
-            'forecastBalance' => $forecastBalance,
             'forecastCheck' => $forecastCheck,
             'balanceDate' => $forecastService->formatDate($today),
         ]);

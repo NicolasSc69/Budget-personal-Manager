@@ -124,6 +124,9 @@ msgstr "Automatically generated from a recurring transaction"
 msgid "Automatically generates the next transactions on their due date."
 msgstr "Automatically generates the next transactions on their due date."
 
+msgid "Current balance + upcoming transactions of the current month, excluding tags marked Excluded from forecast."
+msgstr "Current balance + upcoming transactions of the current month, excluding tags marked Excluded from forecast."
+
 msgid "Interest earned this month"
 msgstr "Interest earned this month"
 
@@ -583,9 +586,6 @@ msgstr "Light"
 msgid "Line %line%: invalid format, expected 1 or 2 columns separated by a comma."
 msgstr "Line %line%: invalid format, expected 1 or 2 columns separated by a comma."
 
-msgid "Main figure: current balance + current month total, excluding tags marked Excluded from forecast. In parentheses: estimate based on average salary for the month."
-msgstr "Main figure: current balance + current month total, excluding tags marked Excluded from forecast. In parentheses: estimate based on average salary for the month."
-
 msgid "Manage account types"
 msgstr "Manage account types"
 
@@ -894,9 +894,6 @@ msgstr "Tests"
 
 msgid "Text size"
 msgstr "Text size"
-
-msgid "Theoretical"
-msgstr "Theoretical"
 
 msgid "The account has been created."
 msgstr "The account has been created."
