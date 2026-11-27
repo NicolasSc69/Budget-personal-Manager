@@ -350,13 +350,76 @@
                 });
             })();
 
-            // The download does not reload the page: hide the "modified" indicator right away.
-            document.getElementById('db-download-link')?.addEventListener('click', function () {
+            (function () {
+                // Database download: the file is fetched while the full screen loader is shown, then saved
+                // from a blob URL. The download does not reload the page: the "modified" indicator is hidden.
+                var link = document.getElementById('db-download-link');
+                if (!link) {
+                    return;
+                }
                 var title = {{ 'Download the database'|trans|json_encode|raw }};
-                this.classList.remove('is-modified');
-                this.title = title;
-                this.setAttribute('aria-label', title);
-            });
+                var downloadingLabel = {{ 'Downloading the database…'|trans|json_encode|raw }};
+                var failedLabel = {{ 'The database download failed, please try again.'|trans|json_encode|raw }};
+                var downloading = false;
+
+                function markDownloaded() {
+                    link.classList.remove('is-modified');
+                    link.title = title;
+                    link.setAttribute('aria-label', title);
+                }
+
+                function filenameFrom(response) {
+                    var match = /filename="?([^";]+)"?/i.exec(response.headers.get('Content-Disposition') || '');
+
+                    return match ? match[1] : 'database.db';
+                }
+
+                link.addEventListener('click', async function (event) {
+                    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                        markDownloaded();
+                        return;
+                    }
+                    event.preventDefault();
+                    if (downloading) {
+                        return;
+                    }
+
+                    downloading = true;
+                    link.classList.add('disabled');
+                    link.setAttribute('aria-disabled', 'true');
+                    window.showAccountNavOverlay?.(downloadingLabel);
+
+                    try {
+                        var response = await fetch(link.href);
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status);
+                        }
+                        if (!/attachment/i.test(response.headers.get('Content-Disposition') || '')) {
+                            // Not a file (e.g. database not found: redirected to the admin page with a message).
+                            window.location = response.url;
+                            return;
+                        }
+
+                        var url = URL.createObjectURL(await response.blob());
+                        var download = document.createElement('a');
+                        download.href = url;
+                        download.download = filenameFrom(response);
+                        download.setAttribute('data-no-page-loader', '');
+                        document.body.appendChild(download);
+                        download.click();
+                        download.remove();
+                        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+                        markDownloaded();
+                    } catch (error) {
+                        window.alert(failedLabel);
+                    } finally {
+                        window.hidePageLoader?.();
+                        link.classList.remove('disabled');
+                        link.removeAttribute('aria-disabled');
+                        downloading = false;
+                    }
+                });
+            })();
 
             document.querySelectorAll('.toast').forEach(function (toastEl) {
                 new bootstrap.Toast(toastEl).show();

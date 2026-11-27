@@ -64,4 +64,25 @@ final class DatabaseModifiedIndicatorTest extends WebTestCase
         $this->client->request('GET', '/');
         self::assertSelectorNotExists('#db-download-link.is-modified');
     }
+
+    public function testDatabaseDownloadLinkIsHandledByTheLoadingScript(): void
+    {
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $link = $crawler->filter('#db-download-link');
+        self::assertCount(1, $link);
+        self::assertSame('/admin/export', $link->attr('href'));
+        // Kept out of the generic page loader: the download script shows and hides the loader itself.
+        self::assertNotNull($link->attr('data-no-page-loader'));
+    }
+
+    public function testDatabaseExportIsSentAsAnAttachment(): void
+    {
+        $this->client->request('GET', '/admin/export');
+
+        self::assertResponseIsSuccessful();
+        // The download script relies on this header to save the file under the server's name.
+        self::assertMatchesRegularExpression('/^attachment; filename="?compta-export-.+\.db"?$/', (string) $this->client->getResponse()->headers->get('Content-Disposition'));
+    }
 }
